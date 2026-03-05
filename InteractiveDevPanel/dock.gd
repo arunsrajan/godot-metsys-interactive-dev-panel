@@ -3,17 +3,22 @@ extends Control
 
 # UI References
 @onready var filter_container = $VBoxContainer/TabContainer/Filters/FilterList
-@onready var scene_list = $VBoxContainer/TabContainer/SceneBrowser/HBoxContainer/SceneList
-@onready var scene_details = $VBoxContainer/TabContainer/SceneBrowser/HBoxContainer/SceneDetails
-@onready var search_box = $VBoxContainer/TabContainer/SceneBrowser/HBoxContainer/SearchBox
+@onready var scene_list = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/SceneList
+@onready var scene_details = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/SceneDetails
+@onready var search_box = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/SearchBox
+@onready var previous_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/PreviousLayer
+@onready var layer_edit = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/Layer
+@onready var next_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/NextLayer
 @onready var zoom_slider:HSlider = $VBoxContainer/HBoxContainer/ZoomSlider
 @onready var status_label = $VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer/StatusLabel
 @onready var scan_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScanAllScenes
+@onready var file_dialog = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/FileDialog
+@onready var scenes_folder_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScenesFolder
 @onready var refresh_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/RefreshMap
 @onready var export_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ExportMapData
-@onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/HBoxContainer/ScrollContainer/VBoxContainer/HScrollBar/VScrollBar/PanelContainer
-@onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/HBoxContainer/RoomWidth
-@onready var room_height = $VBoxContainer/TabContainer/SceneBrowser/HBoxContainer/RoomHeight
+@onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/ScrollContainer/VBoxContainer/HScrollBar/VScrollBar/PanelContainer
+@onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/RoomWidth
+@onready var room_height = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/RoomHeight
 
 
 # Data Structures
@@ -36,11 +41,60 @@ var filter_categories = [
 ]
 
 # Editor references (will be populated dynamically)
-var metSys_map_view = null
-var metSys_editor = null
+var metsys_map_view = null
+var metsys_editor = null
 var _scene_scanner:SceneScanner  # Will hold scanner instance
 var overlay:MapOverlay = null
+var scenes_folder = "res://"
+func _on_resources_reload(resources: PackedStringArray):
+	_deferred_check_map_data(resources[0])
+
+func _on_resources_reimported(resources: Array):
+	for resource_path in resources:
+		if resource_path.ends_with("MapData.txt"):
+			_deferred_check_map_data(resource_path)
+			break
+
+func _deferred_check_map_data(resource_path):
+	print("Resource path ",resource_path)
+	if resource_path.ends_with("MapData.txt"):
+		call_deferred("load_map_data", resource_path)
+
+func _on_scenes_folder_btn_pressed():
+	# Set to directory mode explicitly
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+	file_dialog.popup()
+
+func _on_file_dialog_dir_selected(dir):
+	scenes_folder = dir
+	_scan_all_scenes(scenes_folder)
+
 func _ready():
+	var editor_filesystem = EditorInterface.get_resource_filesystem()
+	if editor_filesystem:
+		# This signal fires when files are updated
+		editor_filesystem.resources_reload.connect(_on_resources_reload)
+		editor_filesystem.resources_reimported.connect(_on_resources_reimported)
+	scenes_folder_btn.pressed.connect(_on_scenes_folder_btn_pressed)
+	
+	layer_edit.text = "0"
+	previous_layer.pressed.connect(func(): 
+		if int(layer_edit.text) <=0:
+			return
+		layer_edit.text = str(int(layer_edit.text) - 1)
+		if overlay:
+			overlay.set_layer(int(layer_edit.text))
+	)
+	next_layer.pressed.connect(func(): 
+		layer_edit.text = str(int(layer_edit.text) + 1)
+		if overlay:
+			overlay.set_layer(int(layer_edit.text))
+	)
+	layer_edit.text_changed.connect(func(text_change):
+		print(text_change)
+		if overlay:
+			overlay.set_layer(int(text_change))
+	)
 	# Setup UI connections
 	setup_ui_connections()
 	
@@ -54,7 +108,7 @@ func _ready():
 	find_metSys_components()
 	
 	# Initial scan if needed
-	scan_btn.pressed.connect(_scan_all_scenes)
+	scan_btn.pressed.connect(_scan_all_scenes.bind("res://SampleProject/Maps/"))
 	refresh_btn.pressed.connect(refresh_map_display)
 	export_btn.pressed.connect(_export_map_data)
 
@@ -97,11 +151,15 @@ func find_node_recursive(node, node_name: String, node_type: String = "",begins_
 	
 	return null
 
-func load_map_data():
+func _process(delta):
+	if not metsys_map_view or not metsys_editor:
+		find_metSys_components()
+
+func load_map_data(map_data_txt_path:String = "res://SampleProject/Maps/"):
 	status_label.text = "Loading map data..."
 	
 	# Get map root folder from MetSys settings
-	var map_root = get_metSys_setting("map_root_folder", "res://SampleProject/Maps/")
+	var map_root = get_metSys_setting("map_root_folder", map_data_txt_path)
 	var map_data_path = map_root.path_join("MapData.txt")
 	
 	# Clear existing map data
@@ -309,9 +367,9 @@ func merge_map_data(api_data):
 				map_data.cells[key] = cell
 
 func refresh_map_display():
-	if metSys_map_view and metSys_map_view.has_method("queue_redraw"):
+	if metsys_map_view and metsys_map_view.has_method("queue_redraw"):
 		# Trigger redraw
-		metSys_map_view.queue_redraw()
+		metsys_map_view.queue_redraw()
 		
 		# If we have overlay, update it
 		if overlay:
@@ -331,7 +389,7 @@ func _on_filter_toggled(checked: bool, filter_name: String):
 	refresh_map_display()
 	_filter_scene_list(filter_name)
 
-func _scan_all_scenes():
+func _scan_all_scenes(scenes_folder_local:String = "res://SampleProject/Maps/"):
 	status_label.text = "Initializing scanner..."
 	
 	# Create scanner instance
@@ -340,9 +398,11 @@ func _scan_all_scenes():
 	# Connect signals
 	_scene_scanner.scan_progress_updated.connect(_on_scan_progress)
 	_scene_scanner.scan_completed.connect(_on_scan_completed)
-	
+	print("Scenes Folder ", scenes_folder)
+	if scenes_folder == "":
+		scenes_folder = scenes_folder_local
 	# Start scan (optionally specify subfolder)
-	_scene_scanner.scan_all_scenes("res://SampleProject/Maps/")
+	_scene_scanner.scan_all_scenes(scenes_folder)
 
 func find_scene_files(dir_path: String, result_array: Array):
 	var dir = DirAccess.open(dir_path)
@@ -539,16 +599,16 @@ func _export_map_data():
 		status_label.text = "Export failed"
 
 func highlight_cell(layer: int, cell_coords: Vector2i):
-	if metSys_map_view and metSys_map_view.has_method("highlight_cell"):
-		metSys_map_view.highlight_cell(layer, cell_coords)
+	if metsys_map_view and metsys_map_view.has_method("highlight_cell"):
+		metsys_map_view.highlight_cell(layer, cell_coords)
 
 func center_on_cell(layer: int, cell_coords: Vector2i):
-	if metSys_map_view and metSys_map_view.has_method("center_on"):
-		metSys_map_view.center_on(layer, cell_coords)
+	if metsys_map_view and metsys_map_view.has_method("center_on"):
+		metsys_map_view.center_on(layer, cell_coords)
 
 # Add this function to dock.gd
 func setup_map_overlay():
-	if not metSys_map_view:
+	if not metsys_map_view:
 		return null
 	
 	# Create overlay instance
@@ -558,7 +618,7 @@ func setup_map_overlay():
 	# Add as child of map view
 	scrollable_panel_container.call_deferred("add_child", overlay)
 	# Pass reference to map view
-	overlay.set_map_view(metSys_map_view)
+	overlay.set_map_view(metsys_map_view)
 	# Initial update with current data
 	overlay.update_from_map_data(map_data)
 	overlay.update_filters(current_filters)
@@ -571,31 +631,34 @@ func find_metSys_components():
 		push_error("Could not get editor base control")
 		return
 	if editor_root:
-		# Look for MetSys map view (common names used in MetSys)
-		var possible_names = ["MapView", "MapEditorView", "MetSysMapView", "RoomMapView"]
-		for name in possible_names:
-			metSys_map_view = find_node_recursive(editor_root, name, "Control")
-			if metSys_map_view:
-				break
+		if not metsys_map_view:
+			# Look for MetSys map view (common names used in MetSys)
+			var possible_names = ["MapView", "MapEditorView", "MetSysMapView", "RoomMapView"]
+			for name in possible_names:
+				metsys_map_view = find_node_recursive(editor_root, name, "Control")
+				if metsys_map_view:
+					break
+	
+	
+	if not metsys_editor:
+		var possible_window_names = [
+			"Main"
+			]
 		
-	var possible_window_names = [
-		"Main"
-		]
+		for window_name in possible_window_names:
+			# Look for MetSys editor main window
+			metsys_editor = find_node_recursive(editor_root, window_name, "VBoxContainer", true)
+			if metsys_editor:
+					# Find the TabContainer within the window
+					var tab_container = find_node_recursive(metsys_editor, "TabContainer")
+					if tab_container:
+						# Access specific tabs by index
+						var map_editor_tab = tab_container.get_child(0)  # Map Editor
+						var map_viewer_tab = tab_container.get_child(1)  # Map Viewer
+						var manage_tab = tab_container.get_child(2)
+					break
 	
-	for window_name in possible_window_names:
-		# Look for MetSys editor main window
-		metSys_editor = find_node_recursive(editor_root, window_name, "VBoxContainer", true)
-		if metSys_editor:
-				# Find the TabContainer within the window
-				var tab_container = find_node_recursive(metSys_editor, "TabContainer")
-				if tab_container:
-					# Access specific tabs by index
-					var map_editor_tab = tab_container.get_child(0)  # Map Editor
-					var map_viewer_tab = tab_container.get_child(1)  # Map Viewer
-					var manage_tab = tab_container.get_child(2)
-				break
-	
-	if metSys_map_view:
+	if metsys_map_view:
 		status_label.text = "Connected to MetSys editor"
 		# Setup overlay after finding map view
 		setup_map_overlay()

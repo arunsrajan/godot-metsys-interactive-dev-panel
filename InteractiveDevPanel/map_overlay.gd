@@ -11,7 +11,8 @@ var map_view_reference = null  # Reference to the MetSys MapView
 # Create a Control node to handle drawing
 var drawing_area
 var scale_value=1.0
-var room_size  =Vector2(864, 480)
+var room_size  = Vector2(864, 480)
+var current_layer = 0;
 func _ready():
 	# Create a Control node for drawing if it doesn't exist
 	if not has_node("DrawingArea"):
@@ -47,10 +48,18 @@ func update_from_map_data(data: Dictionary):
 func set_map_view(map_view):
 	map_view_reference = map_view
 
+func set_layer(layer:int):
+	current_layer = layer
+	_on_drawing_area_draw()
+
 func _on_drawing_area_draw():
 	if not map_data or not map_data.has("cells") or not map_data.cells:
 		return
-	
+	var children = get_children()
+	# Iterate through the list and free each child
+	for child in children:
+		remove_child(child)
+		child.queue_free()
 	# Get the actual map view position and zoom if available
 	var view_offset = Vector2.ZERO
 	var view_zoom = 1.0
@@ -63,7 +72,7 @@ func _on_drawing_area_draw():
 			view_zoom = map_view_reference.get_zoom()
 	
 	# Draw markers for each cell based on filters
-	var current_layer = 0;
+	print("Current Layer ", current_layer)
 	var cell_transform: Dictionary = {}
 	var cell_min_x=3000000;
 	var cell_min_y=3000000;
