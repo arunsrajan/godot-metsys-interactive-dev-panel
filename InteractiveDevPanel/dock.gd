@@ -3,22 +3,22 @@ extends Control
 
 # UI References
 @onready var filter_container = $VBoxContainer/TabContainer/Filters/FilterList
-@onready var scene_list = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/SceneList
-@onready var scene_details = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/SceneDetails
-@onready var search_box = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/SearchBox
-@onready var previous_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/PreviousLayer
-@onready var layer_edit = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/Layer
-@onready var next_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/NextLayer
-@onready var zoom_slider:HSlider = $VBoxContainer/HBoxContainer/ZoomSlider
+@onready var scene_list = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SceneList
+@onready var scene_details = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SceneDetails
+@onready var search_box = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SearchBox
+@onready var previous_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/PreviousLayer
+@onready var layer_edit = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/Layer
+@onready var next_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/NextLayer
+@onready var zoom_slider:HSlider = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/ZoomSlider
 @onready var status_label = $VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer/StatusLabel
 @onready var scan_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScanAllScenes
 @onready var file_dialog = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/FileDialog
 @onready var scenes_folder_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScenesFolder
 @onready var refresh_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/RefreshMap
 @onready var export_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ExportMapData
-@onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/ScrollContainer/VBoxContainer/HScrollBar/VScrollBar/PanelContainer
-@onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/RoomWidth
-@onready var room_height = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/RoomHeight
+@onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer
+@onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomWidth
+@onready var room_height = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomHeight
 
 
 # Data Structures
@@ -614,9 +614,8 @@ func setup_map_overlay():
 	# Create overlay instance
 	overlay = preload("res://addons/InteractiveDevPanel/map_overlay.gd").new()
 	overlay.name = "InteractiveDevOverlay"
-	overlay.set_scale_value(zoom_slider.value / 100.0)
-	# Add as child of map view
 	scrollable_panel_container.call_deferred("add_child", overlay)
+	overlay.set_scale_value(zoom_slider.value / 100.0)
 	# Pass reference to map view
 	overlay.set_map_view(metsys_map_view)
 	# Initial update with current data
@@ -705,3 +704,19 @@ func show_scan_summary():
 	scene_details.size.y = 100
 	# Display in your details panel
 	scene_details.text = text
+
+var zoom_speed = 0.01
+var min_zoom = 0.0
+var max_zoom = 1.0
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			overlay.scale += Vector2(zoom_speed, zoom_speed)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			overlay.scale -= Vector2(zoom_speed, zoom_speed)
+		overlay.scale = overlay.scale.clamp(Vector2(min_zoom, min_zoom), Vector2(max_zoom, max_zoom))
+		overlay.set_scale_value(overlay.scale.x)
+		zoom_slider.value = overlay.scale.x * 100
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		overlay.position += event.relative

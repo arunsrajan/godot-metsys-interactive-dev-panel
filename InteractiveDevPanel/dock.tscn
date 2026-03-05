@@ -20,22 +20,6 @@ text = "MetSys Developer Tool"
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="VSeparator" type="VSeparator" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-
-[node name="ZoomSlider" type="HSlider" parent="VBoxContainer/HBoxContainer"]
-clip_contents = true
-custom_minimum_size = Vector2(400, 20)
-layout_mode = 2
-step = 0.25
-value = 40.0
-tick_count = 1
-ticks_on_borders = true
-ticks_position = 1
-
-[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-
 [node name="StatusBarContainer" type="PanelContainer" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
 script = ExtResource("2_gho3s")
@@ -103,27 +87,49 @@ metadata/_tab_index = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser"]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 676.0
+offset_bottom = 67.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
 layout_mode = 2
 
-[node name="SearchBox" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="ZoomSlider" type="HSlider" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+clip_contents = true
+custom_minimum_size = Vector2(400, 20)
+layout_mode = 2
+step = 0.25
+value = 40.0
+tick_count = 1
+ticks_on_borders = true
+ticks_position = 1
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SearchBox" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 visible = false
 layout_mode = 2
 
-[node name="RoomWidth" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="RoomWidth" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "864"
 placeholder_text = "Room Width"
 
-[node name="RoomHeight" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="RoomHeight" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "480"
 placeholder_text = "Room Height"
 
-[node name="SceneList" type="ItemList" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="SceneList" type="ItemList" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 visible = false
 layout_mode = 2
 max_columns = 100
@@ -131,7 +137,7 @@ same_column_width = true
 fixed_column_width = 500
 fixed_icon_size = Vector2i(32, 32)
 
-[node name="SceneDetails" type="RichTextLabel" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="SceneDetails" type="RichTextLabel" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 visible = false
 layout_mode = 2
 fit_content = true
@@ -139,44 +145,22 @@ scroll_following = true
 scroll_following_visible_characters = true
 autowrap_mode = 0
 
-[node name="PreviousLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="PreviousLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "<"
 
-[node name="Layer" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="Layer" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "0"
 
-[node name="NextLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="NextLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = ">"
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
 layout_mode = 2
-
-[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
-custom_minimum_size = Vector2(3000000, 3000000)
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/ScrollContainer"]
-custom_minimum_size = Vector2(3000000, 3000000)
-layout_mode = 2
-
-[node name="HScrollBar" type="HScrollBar" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="VScrollBar" type="VScrollBar" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/ScrollContainer/VBoxContainer/HScrollBar"]
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
-
-[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/ScrollContainer/VBoxContainer/HScrollBar/VScrollBar"]
-custom_minimum_size = Vector2(3000000, 3000000)
-layout_mode = 0
-offset_right = 3000000.0
-offset_bottom = 3000000.0
 
 [connection signal="dir_selected" from="VBoxContainer/TabContainer/QuickActions/HBoxContainer/FileDialog" to="." method="_on_file_dialog_dir_selected"]

@@ -16,18 +16,15 @@ var current_layer = 0;
 func _ready():
 	# Create a Control node for drawing if it doesn't exist
 	if not has_node("DrawingArea"):
-		drawing_area = Control.new()
+		drawing_area = TextureRect.new()
 		drawing_area.name = "DrawingArea"
-		drawing_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		drawing_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(drawing_area)
 	else:
 		drawing_area = $DrawingArea
-	size = Vector2(30000,30000)
-	drawing_area.custom_minimum_size.x = 30000
-	drawing_area.custom_minimum_size.y = 30000
 	# Connect to the drawing area's draw signal
 	drawing_area.draw.connect(_on_drawing_area_draw)
+	visibility_changed.connect(_on_drawing_area_draw)
 
 func set_scale_value(value:float):
 	scale_value = value
@@ -112,13 +109,12 @@ func _on_drawing_area_draw():
 	for cell_key in cell_transform:
 		draw_room(cell_transform[cell_key])
 		
-	print("Viewport Width Viewport Height ", get_viewport().size)
 	for cell_key in map_data.cells:
 		var cell = map_data.cells[cell_key]
 		var metadata = cell.get("meta_data", {})
 		if should_draw_cell(cell, metadata):
 			draw_cell_marker(cell, metadata, view_offset, view_zoom)
-
+	
 func should_draw_cell(cell: Dictionary, metadata: Dictionary) -> bool:
 	# If no filters active, don't draw overlays
 	var any_active = false
