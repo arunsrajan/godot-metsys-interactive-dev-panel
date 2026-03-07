@@ -82,7 +82,9 @@ func _reload_map_data():
 	print("MapData.txt changed, reloading...")
 	
 	# Use call_deferred to avoid interrupting editor
-	call_deferred("load_map_data", map_data_path)
+	load_map_data(map_data_path)
+	refresh_map_display()
+	_on_zoom_changed(float(zoom_slider.value))
 
 func _on_resources_reload(resources: PackedStringArray):
 	_deferred_check_map_data(resources[0])
@@ -268,15 +270,6 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	
 	status_label.text = "Map data loaded: %d cells found" % map_data.cells.size()
 	
-	# Also try to load through MetSys API if available
-	#if Engine.has_singleton("MetSys"):
-	#	var metSys = Engine.get_singleton("MetSys")
-	#	if metSys and metSys.has_method("get_map_data"):
-	#		var api_data = metSys.get_map_data()
-	#		if api_data:
-				# Merge with file-based data
-	#			merge_map_data(api_data)
-	#			status_label.text = "Map data loaded via MetSys API"
 
 func parse_cell_data_line(line: String, cell: Dictionary):
 	# Split by double pipe first (separates scene UID)
