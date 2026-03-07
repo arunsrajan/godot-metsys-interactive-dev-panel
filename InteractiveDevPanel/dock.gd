@@ -14,14 +14,15 @@ signal map_data_loaded(success: bool)
 @onready var next_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/NextLayer
 @onready var zoom_slider:HSlider = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/ZoomSlider
 @onready var status_label = $VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer/StatusLabel
-@onready var scan_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScanAllScenes
-@onready var file_dialog = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/FileDialog
-@onready var scenes_folder_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScenesFolder
-@onready var refresh_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/RefreshMap
-@onready var export_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ExportMapData
+@onready var scan_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/ScanAllScenes
+@onready var file_dialog = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/FileDialog
+@onready var project_folder_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/ScenesFolder
+@onready var refresh_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/RefreshMap
+@onready var export_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/ExportMapData
 @onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer/ScrollContainer
 @onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomWidth
 @onready var room_height = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomHeight
+@onready var map_data_txt_group = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/VBoxContainer
 
 
 # Data Structures
@@ -50,23 +51,28 @@ var _scene_scanner:SceneScanner  # Will hold scanner instance
 var overlay:MapOverlay = null
 var scenes_folder = "res://"
 
-var map_data_path: String = "res://MapData.txt"
+var map_data_path: String = "res://"
 var _last_modified: int = 0
 var _check_timer: Timer
 var _pending_reload: bool = false
 var _reload_debounce: float = 0.5  # Debounce multiple rapid changes
-
+var map_data_txts = []
 func _setup_fallback_timer():
 	if not map_data_path.ends_with("MapData.txt"):
 		return
-	if _check_timer:
-		remove_child(_check_timer)
-		_check_timer.queue_free()
+	_destroy_if_map_data_scan_timer_available()
 	_check_timer = Timer.new()
-	_check_timer.wait_time = 3.0  # Check every 3 seconds
+	_check_timer.wait_time = 2.0  # Check every 3 seconds
 	_check_timer.timeout.connect(_check_file_direct)
 	_check_timer.autostart = true
 	add_child(_check_timer)
+
+func _destroy_if_map_data_scan_timer_available():
+	if _check_timer:
+		remove_child(_check_timer)
+		_check_timer.stop()
+		_check_timer.queue_free()
+
 
 func _check_file_direct():
 	if map_data_path.is_empty() or not FileAccess.file_exists(map_data_path):
@@ -100,7 +106,7 @@ func _deferred_check_map_data(resource_path):
 	if resource_path.ends_with("MapData.txt"):
 		call_deferred("load_map_data", resource_path)
 
-func _on_scenes_folder_btn_pressed():
+func _on_project_folder_btn_pressed():
 	# Set to directory mode explicitly
 	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
 	file_dialog.popup()
@@ -115,7 +121,7 @@ func _ready():
 		# This signal fires when files are updated
 		editor_filesystem.resources_reload.connect(_on_resources_reload)
 		editor_filesystem.resources_reimported.connect(_on_resources_reimported)
-	scenes_folder_btn.pressed.connect(_on_scenes_folder_btn_pressed)
+	project_folder_btn.pressed.connect(_on_project_folder_btn_pressed)
 	
 	layer_edit.text = "0"
 	previous_layer.pressed.connect(func(): 
@@ -430,12 +436,14 @@ func _scan_all_scenes(scenes_folder_local:String = "res://SampleProject/Maps/"):
 	
 	# Create scanner instance
 	_scene_scanner = preload("res://addons/InteractiveDevPanel/scene_scanner.gd").new()
-	
+	_remove_overlay()
 	# Connect signals
 	_scene_scanner.scan_progress_updated.connect(_on_scan_progress)
 	_scene_scanner.scan_completed.connect(_on_scan_completed)
+	map_data_txts.clear()
 	_scene_scanner.scan_map_data_txt_completed.connect(func(map_data_txt_path):
 		map_data_path = map_data_txt_path
+		map_data_txts.append(map_data_path)
 		print("MapData.txt Found in path ", map_data_path)
 	)
 	print("Scenes Folder ", scenes_folder)
@@ -650,18 +658,19 @@ func center_on_cell(layer: int, cell_coords: Vector2i):
 func setup_map_overlay():
 	if not metsys_map_view:
 		return null
-	
-	# Create overlay instance
-	overlay = preload("res://addons/InteractiveDevPanel/map_overlay.gd").new()
-	overlay.name = "InteractiveDevOverlay"
-	scrollable_panel_container.call_deferred("add_child", overlay)
-	overlay.set_scale_value(zoom_slider.value / 100.0)
-	# Pass reference to map view
-	overlay.set_map_view(metsys_map_view)
-	# Initial update with current data
-	overlay.update_from_map_data(map_data)
-	overlay.update_filters(current_filters)
-	_on_zoom_changed(float(zoom_slider.value))
+		
+	if not overlay:
+		# Create overlay instance
+		overlay = preload("res://addons/InteractiveDevPanel/map_overlay.gd").new()
+		overlay.name = "InteractiveDevOverlay"
+		scrollable_panel_container.call_deferred("add_child", overlay)
+		overlay.set_scale_value(zoom_slider.value / 100.0)
+		# Pass reference to map view
+		overlay.set_map_view(metsys_map_view)
+		# Initial update with current data
+		overlay.update_from_map_data(map_data)
+		overlay.update_filters(current_filters)
+		_on_zoom_changed(float(zoom_slider.value))
 	return overlay
 
 # Update the find_metSys_components function
@@ -732,8 +741,37 @@ func _on_scan_completed(scene_db: Dictionary):
 	
 	# Optional: Show summary
 	show_scan_summary()
-	_setup_fallback_timer()
-	load_map_data(map_data_path)
+	var childrens = map_data_txt_group.get_children();
+	for child in childrens:
+		map_data_txt_group.remove_child(child)
+	_destroy_if_map_data_scan_timer_available()
+	var button_group = ButtonGroup.new()
+	for map_data_path_local in map_data_txts:
+		var checkbox:CheckBox = CheckBox.new()
+		checkbox.button_group = button_group
+		checkbox.toggle_mode = true
+		checkbox.text = map_data_path_local
+		checkbox.toggled.connect(on_checkbox_selected.bind(map_data_path_local))
+		map_data_txt_group.add_child(checkbox)
+	
+func on_checkbox_selected(toggle:bool, map_data_path_local:String):
+	if toggle:
+		print("Map Path Selected ", map_data_path_local)
+		_remove_overlay()
+		load_map_data(map_data_path_local)
+		setup_map_overlay()
+		_setup_fallback_timer()
+
+
+func _remove_overlay():
+	if overlay:
+		var childs = overlay.get_children()
+		for child in childs:
+			overlay.remove_child(child)
+			child.queue_free()
+			print("Scene ", child.name, " Freed")
+		scrollable_panel_container.remove_child(overlay)
+		overlay = null
 
 func show_scan_summary():
 	var summary = _scene_scanner.get_feature_summary()

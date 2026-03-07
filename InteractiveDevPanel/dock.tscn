@@ -45,30 +45,39 @@ current_tab = 0
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/QuickActions"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/QuickActions"]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="ScanAllScenes" type="Button" parent="VBoxContainer/TabContainer/QuickActions/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScanAllScenes" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "Scan All Scenes"
 
-[node name="RefreshMap" type="Button" parent="VBoxContainer/TabContainer/QuickActions/HBoxContainer"]
+[node name="RefreshMap" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "Refresh Map"
 
-[node name="ExportMapData" type="Button" parent="VBoxContainer/TabContainer/QuickActions/HBoxContainer"]
+[node name="ExportMapData" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "Export Map Data"
 
-[node name="FileDialog" type="FileDialog" parent="VBoxContainer/TabContainer/QuickActions/HBoxContainer"]
+[node name="FileDialog" type="FileDialog" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
 title = "Open a Directory"
 file_mode = 2
 
-[node name="ScenesFolder" type="Button" parent="VBoxContainer/TabContainer/QuickActions/HBoxContainer"]
+[node name="ScenesFolder" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
 layout_mode = 2
-text = "Open Scenes Folder"
+text = "Open Project Folder"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer"]
+layout_mode = 2
 
 [node name="SceneBrowser" type="Control" parent="VBoxContainer/TabContainer"]
 visible = false
@@ -164,4 +173,4 @@ custom_minimum_size = Vector2(864, 480)
 layout_mode = 2
 size_flags_vertical = 3
 
-[connection signal="dir_selected" from="VBoxContainer/TabContainer/QuickActions/HBoxContainer/FileDialog" to="." method="_on_file_dialog_dir_selected"]
+[connection signal="dir_selected" from="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/FileDialog" to="." method="_on_file_dialog_dir_selected"]
