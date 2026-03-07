@@ -16,7 +16,7 @@ extends Control
 @onready var scenes_folder_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ScenesFolder
 @onready var refresh_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/RefreshMap
 @onready var export_btn = $VBoxContainer/TabContainer/QuickActions/HBoxContainer/ExportMapData
-@onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer
+@onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer/ScrollContainer
 @onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomWidth
 @onready var room_height = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomHeight
 
@@ -91,7 +91,6 @@ func _ready():
 			overlay.set_layer(int(layer_edit.text))
 	)
 	layer_edit.text_changed.connect(func(text_change):
-		print(text_change)
 		if overlay:
 			overlay.set_layer(int(text_change))
 	)
@@ -380,9 +379,16 @@ func refresh_map_display():
 
 func _on_zoom_changed(value: float):
 	if overlay:
-		overlay.set_scale_value(value)
-		overlay.set_room_size(Vector2(float(room_width.text), float(room_height.text)))
-		overlay.scale = Vector2(value / 100.0, value / 100.0)
+		var room_size = Vector2(float(room_width.text), float(room_height.text))
+		overlay.set_room_size(room_size)
+		var scale_value = value/float(zoom_slider.max_value)
+		overlay.set_scale_value(scale_value)
+		overlay.set_layer(int(layer_edit.text))
+		overlay.custom_minimum_size = room_size * Vector2(overlay.cell_max_x, overlay.cell_max_y) * Vector2(scale_value, scale_value)
+		scrollable_panel_container.custom_minimum_size = room_size
+		scrollable_panel_container.set_deferred("scroll_horizontal", room_size.x)
+		scrollable_panel_container.set_deferred("scroll_vertical", room_size.y)
+
 
 func _on_filter_toggled(checked: bool, filter_name: String):
 	current_filters[filter_name] = checked
@@ -621,6 +627,7 @@ func setup_map_overlay():
 	# Initial update with current data
 	overlay.update_from_map_data(map_data)
 	overlay.update_filters(current_filters)
+	_on_zoom_changed(float(zoom_slider.value))
 	return overlay
 
 # Update the find_metSys_components function
@@ -704,19 +711,3 @@ func show_scan_summary():
 	scene_details.size.y = 100
 	# Display in your details panel
 	scene_details.text = text
-
-var zoom_speed = 0.01
-var min_zoom = 0.0
-var max_zoom = 1.0
-
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			overlay.scale += Vector2(zoom_speed, zoom_speed)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			overlay.scale -= Vector2(zoom_speed, zoom_speed)
-		overlay.scale = overlay.scale.clamp(Vector2(min_zoom, min_zoom), Vector2(max_zoom, max_zoom))
-		overlay.set_scale_value(overlay.scale.x)
-		zoom_slider.value = overlay.scale.x * 100
-	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		overlay.position += event.relative
