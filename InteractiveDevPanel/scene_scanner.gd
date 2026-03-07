@@ -7,6 +7,7 @@ class_name SceneScanner
 # Signal emitted when scan progress updates
 signal scan_progress_updated(current: int, total: int, current_file: String)
 signal scan_completed(scene_database: Dictionary)
+signal scan_map_data_txt_completed(map_data_txt_path:String)
 
 # Scan results
 var scene_database: Dictionary = {}
@@ -101,8 +102,12 @@ func find_scene_files(dir_path: String, result_array: Array[String]):
 			# Recursively scan subdirectories
 			find_scene_files(dir_path.path_join(file_name), result_array)
 		elif file_name.ends_with(".tscn"):
-			result_array.append(dir_path.path_join(file_name))
-		
+			var scene_path = dir_path.path_join(file_name)
+			var loaded_scene = load(scene_path).instantiate()
+			if loaded_scene.has_node("RoomInstance"):
+				result_array.append(scene_path)
+		elif file_name.ends_with("MapData.txt"):
+			scan_map_data_txt_completed.emit(dir_path.path_join(file_name))
 		file_name = dir.get_next()
 	
 	dir.list_dir_end()

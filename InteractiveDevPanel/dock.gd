@@ -1,8 +1,11 @@
 @tool
 extends Control
 
+signal map_data_changed()
+signal map_data_loaded(success: bool)
+
 # UI References
-@onready var filter_container = $VBoxContainer/TabContainer/Filters/FilterList
+@onready var filter_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/FilterList
 @onready var scene_list = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SceneList
 @onready var scene_details = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SceneDetails
 @onready var search_box = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SearchBox
@@ -46,6 +49,41 @@ var metsys_editor = null
 var _scene_scanner:SceneScanner  # Will hold scanner instance
 var overlay:MapOverlay = null
 var scenes_folder = "res://"
+
+var map_data_path: String = "res://MapData.txt"
+var _last_modified: int = 0
+var _check_timer: Timer
+var _pending_reload: bool = false
+var _reload_debounce: float = 0.5  # Debounce multiple rapid changes
+
+func _setup_fallback_timer():
+	if not map_data_path.ends_with("MapData.txt"):
+		return
+	if _check_timer:
+		remove_child(_check_timer)
+		_check_timer.queue_free()
+	_check_timer = Timer.new()
+	_check_timer.wait_time = 3.0  # Check every 3 seconds
+	_check_timer.timeout.connect(_check_file_direct)
+	_check_timer.autostart = true
+	add_child(_check_timer)
+
+func _check_file_direct():
+	if map_data_path.is_empty() or not FileAccess.file_exists(map_data_path):
+		return
+	
+	var current_modified = FileAccess.get_modified_time(map_data_path)
+	
+	if current_modified != _last_modified:
+		_last_modified = current_modified
+		_reload_map_data()
+
+func _reload_map_data():
+	print("MapData.txt changed, reloading...")
+	
+	# Use call_deferred to avoid interrupting editor
+	call_deferred("load_map_data", map_data_path)
+
 func _on_resources_reload(resources: PackedStringArray):
 	_deferred_check_map_data(resources[0])
 
@@ -110,6 +148,7 @@ func _ready():
 	scan_btn.pressed.connect(_scan_all_scenes.bind("res://SampleProject/Maps/"))
 	refresh_btn.pressed.connect(refresh_map_display)
 	export_btn.pressed.connect(_export_map_data)
+	_setup_fallback_timer()
 
 func setup_ui_connections():
 	# Zoom controls
@@ -154,13 +193,11 @@ func _process(delta):
 	if not metsys_map_view or not metsys_editor:
 		find_metSys_components()
 
-func load_map_data(map_data_txt_path:String = "res://SampleProject/Maps/"):
-	status_label.text = "Loading map data..."
-	
-	# Get map root folder from MetSys settings
-	var map_root = get_metSys_setting("map_root_folder", map_data_txt_path)
-	var map_data_path = map_root.path_join("MapData.txt")
-	
+func load_map_data(map_data_path:String = "res://MapData.txt"):
+	if not map_data_path.ends_with("MapData.txt"):
+		status_label.text = "Unable to load map data..."
+		return
+
 	# Clear existing map data
 	map_data = {
 		"layers": [],
@@ -404,6 +441,10 @@ func _scan_all_scenes(scenes_folder_local:String = "res://SampleProject/Maps/"):
 	# Connect signals
 	_scene_scanner.scan_progress_updated.connect(_on_scan_progress)
 	_scene_scanner.scan_completed.connect(_on_scan_completed)
+	_scene_scanner.scan_map_data_txt_completed.connect(func(map_data_txt_path):
+		map_data_path = map_data_txt_path
+		print("MapData.txt Found in path ", map_data_path)
+	)
 	print("Scenes Folder ", scenes_folder)
 	if scenes_folder == "":
 		scenes_folder = scenes_folder_local
@@ -698,6 +739,8 @@ func _on_scan_completed(scene_db: Dictionary):
 	
 	# Optional: Show summary
 	show_scan_summary()
+	_setup_fallback_timer()
+	load_map_data(map_data_path)
 
 func show_scan_summary():
 	var summary = _scene_scanner.get_feature_summary()

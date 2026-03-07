@@ -41,19 +41,9 @@ layout_mode = 2
 layout_mode = 2
 current_tab = 0
 
-[node name="Filters" type="Control" parent="VBoxContainer/TabContainer"]
+[node name="QuickActions" type="Panel" parent="VBoxContainer/TabContainer"]
 layout_mode = 2
 metadata/_tab_index = 0
-
-[node name="FilterList" type="VBoxContainer" parent="VBoxContainer/TabContainer/Filters"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="QuickActions" type="Panel" parent="VBoxContainer/TabContainer"]
-visible = false
-layout_mode = 2
-metadata/_tab_index = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/QuickActions"]
 layout_mode = 0
@@ -83,12 +73,15 @@ text = "Open Scenes Folder"
 [node name="SceneBrowser" type="Control" parent="VBoxContainer/TabContainer"]
 visible = false
 layout_mode = 2
-metadata/_tab_index = 2
+metadata/_tab_index = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser"]
 layout_mode = 0
 offset_right = 676.0
 offset_bottom = 67.0
+
+[node name="FilterList" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
 layout_mode = 2
@@ -110,6 +103,9 @@ ticks_position = 1
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
@@ -164,6 +160,7 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer"]
+custom_minimum_size = Vector2(864, 480)
 layout_mode = 2
 size_flags_vertical = 3
 
