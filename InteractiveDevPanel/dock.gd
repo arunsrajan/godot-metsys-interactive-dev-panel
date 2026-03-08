@@ -1,9 +1,6 @@
 @tool
 extends Control
 
-signal map_data_changed()
-signal map_data_loaded(success: bool)
-
 # UI References
 @onready var filter_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/FilterList
 @onready var scene_list = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/SceneList
@@ -123,6 +120,9 @@ func _ready():
 		editor_filesystem.resources_reimported.connect(_on_resources_reimported)
 	project_folder_btn.pressed.connect(_on_project_folder_btn_pressed)
 	
+	room_width.text = str(MetSys.settings.in_game_cell_size.x)
+	room_height.text = str(MetSys.settings.in_game_cell_size.y)
+	
 	layer_edit.text = "0"
 	previous_layer.pressed.connect(func(): 
 		if int(layer_edit.text) <=0:
@@ -157,6 +157,7 @@ func _ready():
 	refresh_btn.pressed.connect(refresh_map_display)
 	export_btn.pressed.connect(_export_map_data)
 	_setup_fallback_timer()
+	mouse_filter = Control.MOUSE_FILTER_PASS
 
 func setup_ui_connections():
 	# Zoom controls
@@ -226,7 +227,7 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	
 	var line_number = 0
 	var current_cell = null
-	
+	var layers_sorted:Array[int] = []
 	while not file.eof_reached():
 		var line = file.get_line().strip_edges()
 		line_number += 1
@@ -265,12 +266,19 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 				# Store the cell in map_data
 				var cell_key = "%d,%d,%d" % [current_cell.layer, current_cell.x, current_cell.y]
 				map_data.cells[cell_key] = current_cell.duplicate()
-				
+				if not layers_sorted.has(current_cell.layer):
+					layers_sorted.append(current_cell.layer)
 				# Reset current cell
 				current_cell = null
 	
+	layers_sorted.sort()
+	map_data.layers.clear()
+	
+	for layer_idx in layers_sorted:
+		map_data.layers.append({"idx": layer_idx, "layer_name": MetSys.get_layer_name(layer_idx)})
+		
 	file.close()
-	print("Map Data Cells", map_data.cells)
+	print("Map Data Cells", map_data.cells, " \n\nMap Data Layers ", map_data.layers)
 	# Resolve UIDs to actual scene paths
 	resolve_scene_uids_proper()
 	
@@ -785,3 +793,14 @@ func show_scan_summary():
 	scene_details.size.y = 100
 	# Display in your details panel
 	scene_details.text = text
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.ctrl_pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			if zoom_slider.value + 0.5 <= 100:
+				zoom_slider.value += 0.5
+				_on_zoom_changed(zoom_slider.value)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if zoom_slider.value - 0.5 >= 0:
+				zoom_slider.value -= 0.5
+				_on_zoom_changed(zoom_slider.value)

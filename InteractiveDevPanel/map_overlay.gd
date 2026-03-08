@@ -7,13 +7,16 @@ class_name MapOverlay
 var current_filters = {}
 var map_data = {}
 var map_view_reference = null  # Reference to the MetSys MapView
-var cell_max_x = 0;
-var cell_max_y = 0;
+var cell_max_x:float = 0;
+var cell_max_y:float = 0;
+var cell_min_x:float = 0
+var cell_min_y:float = 0;
 # Create a Control node to handle drawing
 var drawing_area
 var scale_value=0.4
 var room_size  = Vector2(864, 480)
 var current_layer = 0;
+var cell_transform: Dictionary
 func _ready():
 	# Create a Control node for drawing if it doesn't exist
 	if not has_node("DrawingArea"):
@@ -29,6 +32,9 @@ func _ready():
 	stretch_mode = TextureRect.STRETCH_SCALE
 	expand_mode = ExpandMode.EXPAND_IGNORE_SIZE
 	scale = Vector2(0.4, 0.4)
+		
+
+
 func set_scale_value(value:float):
 	scale_value = value
 	
@@ -74,11 +80,11 @@ func _on_drawing_area_draw():
 			view_zoom = map_view_reference.get_zoom()
 	
 	# Draw markers for each cell based on filters
-	var cell_transform: Dictionary = {}
-	var cell_min_x=3000000
-	var cell_min_y=3000000
+	cell_transform = {}
 	cell_max_x = -3000000
 	cell_max_y = -3000000
+	cell_min_y = +3000000
+	cell_min_x = +3000000
 	for cell_key in map_data.cells:
 		var cell = map_data.cells[cell_key]
 		if not cell.get("scene_path") == "" and cell.get("layer") == current_layer:
@@ -92,10 +98,10 @@ func _on_drawing_area_draw():
 				cell_transform[cell.get("scene_path")].min_x = min(cell_transform[cell.get("scene_path")].min_x, cell.get("x"));
 				cell_transform[cell.get("scene_path")].min_y = min(cell_transform[cell.get("scene_path")].min_y, cell.get("y"));
 				cell_transform[cell.get("scene_path")].max_x = max(cell_transform[cell.get("scene_path")].max_x, cell.get("x"));
-				cell_transform[cell.get("scene_path")].max_y = min(cell_transform[cell.get("scene_path")].max_y, cell.get("y"));
+				cell_transform[cell.get("scene_path")].max_y = max(cell_transform[cell.get("scene_path")].max_y, cell.get("y"));
 
 			else:
-				cell_transform.set(cell.get("scene_path"), {"x":cell.get("x"), "y":cell.get("y"),"scene_path":cell.get("scene_path"), "min_x":cell.get("x"), "max_x":cell.get("x"), "min_y":cell.get("y"), "max_y":cell.get("y"), "width":0, "height":0})
+				cell_transform.set(cell.get("scene_path"), {"x":cell.get("x"), "y":cell.get("y"),"scene_path":cell.get("scene_path"), "min_x":cell.get("x"), "max_x":cell.get("x"), "min_y":cell.get("y"), "max_y":cell.get("y"), "width":0, "height":0, "cell_room": cell})
 	
 	if cell_min_x < 0:
 		cell_min_x = abs(cell_min_x)
@@ -111,19 +117,50 @@ func _on_drawing_area_draw():
 		for cell_key in cell_transform:
 			cell_transform[cell_key].x += cell_min_x
 			cell_transform[cell_key].y += cell_min_y
+			cell_transform[cell_key].max_x += cell_min_x
+			cell_transform[cell_key].min_x += cell_min_x
+			cell_transform[cell_key].max_y += cell_min_y
+			cell_transform[cell_key].min_y += cell_min_y
 			cell_transform[cell_key].width = cell_transform[cell_key].max_x - cell_transform[cell_key].min_x
 			cell_transform[cell_key].height = cell_transform[cell_key].max_y - cell_transform[cell_key].min_y
 			cell_transform[cell_key].width = 1 if cell_transform[cell_key].width == 0 else cell_transform[cell_key].width
 			cell_transform[cell_key].height = 1 if cell_transform[cell_key].height == 0 else cell_transform[cell_key].height
-	for cell_key in cell_transform:
-		draw_room(cell_transform[cell_key])
+	
+	queue_redraw()
 		
 	for cell_key in map_data.cells:
 		var cell = map_data.cells[cell_key]
 		var metadata = cell.get("meta_data", {})
 		if should_draw_cell(cell, metadata):
 			draw_cell_marker(cell, metadata, view_offset, view_zoom)
-	
+func _draw():
+	var room_scale = Vector2(scale_value, scale_value)
+	for cell_key in map_data.cells:
+		var cell = map_data.cells[cell_key]
+		if cell.get("layer") == current_layer:
+			var connections = cell.get("connections")
+			var min_x = cell.get("x") + cell_min_x
+			var min_y = cell.get("y") + cell_min_y
+			var max_x = min_x + 1
+			var max_y = min_y + 1
+			if (connections[0] == 0):
+				draw_line(Vector2(max_x, min_y) * room_size * room_scale, Vector2(max_x, max_y) * room_size * room_scale, Color.RED, 3)
+			if (connections[1] == 0):
+				draw_line(Vector2(max_x, max_y) * room_size * room_scale, Vector2(min_x, max_y) * room_size * room_scale, Color.RED, 3)
+			if (connections[2] == 0):
+				draw_line(Vector2(min_x, max_y) * room_size * room_scale, Vector2(min_x, min_y) * room_size * room_scale, Color.RED, 3)
+			if (connections[3] == 0):
+				draw_line(Vector2(min_x, min_y) * room_size * room_scale, Vector2(max_x, min_y) * room_size * room_scale, Color.RED, 3)
+	for cell_key in cell_transform:
+		var cell  = cell_transform[cell_key]
+		if not cell.get("scene_path") == "":
+			var room = load(cell.get("scene_path")).instantiate()
+			add_child(room)
+			room.scale = room_scale
+			var room_scale_room_size = room_size * room_scale
+			var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
+			room.position = Vector2(position.x, position.y)
+			
 func should_draw_cell(cell: Dictionary, metadata: Dictionary) -> bool:
 	# If no filters active, don't draw overlays
 	var any_active = false
@@ -179,16 +216,6 @@ func draw_cell_marker(cell: Dictionary, metadata: Dictionary, view_offset: Vecto
 	
 	if metadata.get("has_save_points", false) or not metadata.get("save_points", []).is_empty():
 		draw_save_marker(screen_pos)
-
-func draw_room(cell):
-	if not cell.get("scene_path") == "":
-		var room = load(cell.get("scene_path")).instantiate()
-		add_child(room)
-		var room_scale = Vector2(scale_value, scale_value)
-		room.scale = room_scale
-		var room_scale_room_size = room_size * room_scale
-		var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
-		room.position = Vector2(position.x, position.y)
 
 func get_room_cell_screen_position(cell: Dictionary, view_offset: Vector2, view_zoom: float) -> Vector2:
 	# This assumes each cell is 256x256 (default RoomInstance cell_size)
