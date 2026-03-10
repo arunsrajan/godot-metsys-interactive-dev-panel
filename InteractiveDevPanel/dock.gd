@@ -11,10 +11,8 @@ extends Control
 @onready var next_layer = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/NextLayer
 @onready var zoom_slider:HSlider = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer/ZoomSlider
 @onready var status_label = $VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer/StatusLabel
-@onready var scan_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/ScanAllScenes
 @onready var file_dialog = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/FileDialog
 @onready var project_folder_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/ScenesFolder
-@onready var refresh_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/RefreshMap
 @onready var export_btn = $VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/ExportMapData
 @onready var scrollable_panel_container = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer/ScrollContainer
 @onready var room_width = $VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer/RoomWidth
@@ -81,7 +79,6 @@ func _reload_map_data():
 	
 	# Use call_deferred to avoid interrupting editor
 	load_map_data(map_data_path)
-	refresh_map_display()
 	_on_zoom_changed(float(zoom_slider.value))
 
 func _on_resources_reload(resources: PackedStringArray):
@@ -146,10 +143,7 @@ func _ready():
 	
 	# Find MetSys editor components
 	find_metSys_components()
-	
-	# Initial scan if needed
-	scan_btn.pressed.connect(_scan_all_scenes.bind("res://SampleProject/Maps/"))
-	refresh_btn.pressed.connect(refresh_map_display)
+
 	export_btn.pressed.connect(_export_map_data)
 	_setup_fallback_timer()
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -437,18 +431,6 @@ func merge_map_data(api_data):
 			else:
 				map_data.cells[key] = cell
 
-func refresh_map_display():
-	if metsys_map_view and metsys_map_view.has_method("queue_redraw"):
-		# Trigger redraw
-		metsys_map_view.queue_redraw()
-		
-		# If we have overlay, update it
-		if overlay:
-			overlay.update_filters(current_filters)
-			overlay.update_from_map_data(map_data)
-	
-	status_label.text = "Map display refreshed"
-
 func _on_zoom_changed(value: float):
 	if overlay:
 		var room_size = Vector2(float(room_width.text), float(room_height.text))
@@ -466,6 +448,7 @@ func _on_filter_toggled(checked: bool, filter_name: String):
 	current_filters[filter_name] = checked
 	if overlay:
 		overlay.update_filters(current_filters)
+		
 func _scan_all_scenes(scenes_folder_local:String = "res://SampleProject/Maps/"):
 	status_label.text = "Initializing scanner..."
 	
