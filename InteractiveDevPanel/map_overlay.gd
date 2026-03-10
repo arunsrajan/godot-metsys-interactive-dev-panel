@@ -31,7 +31,8 @@ func set_room_size(size:Vector2):
 
 func update_filters(filters: Dictionary):
 	current_filters = filters
-
+	_on_drawing_area_draw()
+	
 func update_from_map_data(data: Dictionary):
 	map_data = data
 
@@ -143,15 +144,15 @@ func _draw():
 			var room_scale_room_size = room_size * room_scale
 			var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
 			room.position = Vector2(position.x, position.y)
-			if room.has_node("SavePoint"):
-				draw_save_marker(position, savepoint_texture, texture_rect, "SavePoint:\n"+cell.get("scene_path"))
-			if room.has_node("Collectible"):
+			if room.has_node("SavePoint") and current_filters["Save Points"]:
+				draw_save_marker(position, savepoint_texture, texture_rect, "Save Points:\n"+cell.get("scene_path"))
+			if room.has_node("Collectible") and current_filters["Collectibles"]:
 				draw_save_marker(position+Vector2(55,0), collectible_texture, texture_rect, "Collectible:\n"+cell.get("scene_path"))
 			var cell_key_label = "%d,%d,%d" % [current_layer, cell.x - cell_min_x, cell.y - cell_min_y]
 			var labels = map_data.labels.get(cell_key_label, null)
 			if labels:
 				for idx in range(map_data.labels[cell_key_label].size()):
-					if not map_data.labels[cell_key_label][idx].teleportations == "":
+					if not map_data.labels[cell_key_label][idx].teleportations == "" and current_filters["Teleporters"]:
 						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect, "Teleportation Point:\n" + map_data.labels[cell_key_label][idx].teleportations)
 				 
 	var label:Label = Label.new()

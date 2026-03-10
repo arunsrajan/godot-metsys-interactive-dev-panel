@@ -31,13 +31,9 @@ var map_data = {
 	"room_connections": []
 }
 var filter_categories = [
-	"Boss Rooms",
 	"Collectibles", 
 	"Save Points",
-	"Breakable Walls",
 	"Teleporters",
-	"Shopkeepers",
-	"Hidden Passages"
 ]
 
 # Editor references (will be populated dynamically)
@@ -468,9 +464,8 @@ func _on_zoom_changed(value: float):
 
 func _on_filter_toggled(checked: bool, filter_name: String):
 	current_filters[filter_name] = checked
-	refresh_map_display()
-	_filter_scene_list(filter_name)
-
+	if overlay:
+		overlay.update_filters(current_filters)
 func _scan_all_scenes(scenes_folder_local:String = "res://SampleProject/Maps/"):
 	status_label.text = "Initializing scanner..."
 	
