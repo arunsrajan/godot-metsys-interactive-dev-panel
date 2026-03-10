@@ -127,10 +127,12 @@ layout_mode = 2
 
 [node name="RoomWidth" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
+text = "864.0"
 placeholder_text = "Room Width"
 
 [node name="RoomHeight" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
+text = "480.0"
 placeholder_text = "Room Height"
 
 [node name="SceneList" type="ItemList" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]

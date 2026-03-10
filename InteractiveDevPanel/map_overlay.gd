@@ -12,46 +12,28 @@ var cell_max_y:float = 0;
 var cell_min_x:float = 0
 var cell_min_y:float = 0;
 # Create a Control node to handle drawing
-var drawing_area
 var scale_value=0.4
 var room_size  = Vector2(864, 480)
 var current_layer = 0;
 var cell_transform: Dictionary
 func _ready():
 	# Create a Control node for drawing if it doesn't exist
-	if not has_node("DrawingArea"):
-		drawing_area = TextureRect.new()
-		drawing_area.name = "DrawingArea"
-		drawing_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		add_child(drawing_area)
-	else:
-		drawing_area = $DrawingArea
-	# Connect to the drawing area's draw signal
-	drawing_area.draw.connect(_on_drawing_area_draw)
 	visibility_changed.connect(_on_drawing_area_draw)
 	stretch_mode = TextureRect.STRETCH_SCALE
 	expand_mode = ExpandMode.EXPAND_IGNORE_SIZE
 	scale = Vector2(0.4, 0.4)
-		
-
 
 func set_scale_value(value:float):
 	scale_value = value
 	
 func set_room_size(size:Vector2):
 	room_size = size
-	
+
 func update_filters(filters: Dictionary):
 	current_filters = filters
-	# Trigger redraw through the drawing area
-	if drawing_area:
-		drawing_area.queue_redraw()
 
 func update_from_map_data(data: Dictionary):
 	map_data = data
-	# Trigger redraw through the drawing area
-	if drawing_area:
-		drawing_area.queue_redraw()
 
 func set_map_view(map_view):
 	map_view_reference = map_view
@@ -127,14 +109,14 @@ func _on_drawing_area_draw():
 			cell_transform[cell_key].height = 1 if cell_transform[cell_key].height == 0 else cell_transform[cell_key].height
 	
 	queue_redraw()
-		
-	for cell_key in map_data.cells:
-		var cell = map_data.cells[cell_key]
-		var metadata = cell.get("meta_data", {})
-		if should_draw_cell(cell, metadata):
-			draw_cell_marker(cell, metadata, view_offset, view_zoom)
+
 func _draw():
 	var room_scale = Vector2(scale_value, scale_value)
+	var savepoint_texture = preload("res://addons/InteractiveDevPanel/assets/savepoint_idp.png")
+	var teleporter_texture = preload("res://addons/InteractiveDevPanel/assets/teleporter_idp.png")
+	var texture_rect:TextureRect = TextureRect.new()
+	var custom_script_resource = load("res://addons/InteractiveDevPanel/draw_marker.gd")
+	texture_rect.set_script(custom_script_resource)
 	for cell_key in map_data.cells:
 		var cell = map_data.cells[cell_key]
 		if cell.get("layer") == current_layer:
@@ -160,6 +142,15 @@ func _draw():
 			var room_scale_room_size = room_size * room_scale
 			var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
 			room.position = Vector2(position.x, position.y)
+			if room.has_node("SavePoint"):
+				draw_save_marker(position, savepoint_texture, texture_rect)
+	var label:Label = Label.new()
+	label.text = MetSys.get_layer_name(current_layer)
+	label.custom_minimum_size = Vector2(100,100)
+	label.position = Vector2(0, 0)
+	add_child(label)
+	add_child(texture_rect)
+	texture_rect.queue_redraw()
 			
 func should_draw_cell(cell: Dictionary, metadata: Dictionary) -> bool:
 	# If no filters active, don't draw overlays
@@ -191,15 +182,10 @@ func should_draw_cell(cell: Dictionary, metadata: Dictionary) -> bool:
 	if current_filters.get("Shopkeepers", false) and metadata.get("has_shopkeeper", false):
 		return true
 	
-	if current_filters.get("Connections", false) and not cell.get("connections", []).is_empty():
-		return true
-	
 	return false
 
 func draw_cell_marker(cell: Dictionary, metadata: Dictionary, view_offset: Vector2, view_zoom: float):
-	if not drawing_area:
-		return
-	
+
 	# Get cell screen position (depends on your MetSys map view)
 	var screen_pos = get_cell_screen_position(cell, view_offset, view_zoom)
 	
@@ -215,7 +201,7 @@ func draw_cell_marker(cell: Dictionary, metadata: Dictionary, view_offset: Vecto
 		draw_shop_marker(screen_pos)
 	
 	if metadata.get("has_save_points", false) or not metadata.get("save_points", []).is_empty():
-		draw_save_marker(screen_pos)
+		draw_save_marker(screen_pos, null, null)
 
 func get_room_cell_screen_position(cell: Dictionary, view_offset: Vector2, view_zoom: float) -> Vector2:
 	# This assumes each cell is 256x256 (default RoomInstance cell_size)
@@ -240,54 +226,39 @@ func get_cell_screen_position(cell: Dictionary, view_offset: Vector2, view_zoom:
 	return (base_pos - view_offset) * view_zoom + get_viewport().size * 0.5
 
 func draw_boss_marker(pos: Vector2):
-	if not drawing_area:
-		return
-	
 	# Draw outer circle
-	drawing_area.draw_circle(pos, 15, Color(1, 0, 0, 0.7))  # Semi-transparent red
-	drawing_area.draw_circle(pos, 12, Color(1, 0.2, 0.2, 0.9))  # Brighter inner
+	draw_circle(pos, 15, Color(1, 0, 0, 0.7))  # Semi-transparent red
+	draw_circle(pos, 12, Color(1, 0.2, 0.2, 0.9))  # Brighter inner
 	
 	# Draw skull symbol (simple X)
-	drawing_area.draw_line(pos + Vector2(-6, -6), pos + Vector2(6, 6), Color.WHITE, 2)
-	drawing_area.draw_line(pos + Vector2(6, -6), pos + Vector2(-6, 6), Color.WHITE, 2)
+	draw_line(pos + Vector2(-6, -6), pos + Vector2(6, 6), Color.WHITE, 2)
+	draw_line(pos + Vector2(6, -6), pos + Vector2(-6, 6), Color.WHITE, 2)
 	
 	# Draw label if zoomed in enough
-	if drawing_area.get_global_transform().get_scale().x > 0.8:
-		drawing_area.draw_string(ThemeDB.fallback_font, pos + Vector2(20, -10), "BOSS", 
+	if get_global_transform().get_scale().x > 0.8:
+		draw_string(ThemeDB.fallback_font, pos + Vector2(20, -10), "BOSS", 
 								HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.RED)
 
 func draw_collectible_marker(pos: Vector2, count: int):
-	if not drawing_area:
-		return
-	
 	# Draw star/gem shape
 	var points = get_star_points(pos, 10, 5, 5)
-	drawing_area.draw_colored_polygon(points, Color(1, 0.8, 0, 0.8))  # Gold
+	draw_colored_polygon(points, Color(1, 0.8, 0, 0.8))  # Gold
 	
 	# Draw count
 	var count_text = "x%d" % count
-	drawing_area.draw_string(ThemeDB.fallback_font, pos + Vector2(15, 5), count_text,
+	draw_string(ThemeDB.fallback_font, pos + Vector2(15, 5), count_text,
 							HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.YELLOW)
 
 func draw_shop_marker(pos: Vector2):
-	if not drawing_area:
-		return
-	
 	# Draw coin shape
-	drawing_area.draw_circle(pos + Vector2(0, 30), 8, Color(0.8, 0.6, 0, 0.8))  # Gold
-	drawing_area.draw_string(ThemeDB.fallback_font, pos + Vector2(15, 25), "$",
+	draw_circle(pos + Vector2(0, 30), 8, Color(0.8, 0.6, 0, 0.8))  # Gold
+	draw_string(ThemeDB.fallback_font, pos + Vector2(15, 25), "$",
 							HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.GOLD)
 
-func draw_save_marker(pos: Vector2):
-	if not drawing_area:
-		return
-	
+func draw_save_marker(pos: Vector2, marker_texture, texture_rect:TextureRect):
 	# Draw bench/save icon
-	var bench_rect = Rect2(pos + Vector2(-8, 45), Vector2(16, 4))
-	drawing_area.draw_rect(bench_rect, Color(0.6, 0.3, 0, 0.8))  # Brown
-	
-	# Draw flame/soul symbol
-	drawing_area.draw_circle(pos + Vector2(0, 40), 5, Color(0, 0.8, 1, 0.7))  # Blue
+	if marker_texture and pos and texture_rect:
+		texture_rect.append_marker(marker_texture, pos)
 
 func get_star_points(center: Vector2, radius: float, points: int, inner_radius_ratio: float) -> PackedVector2Array:
 	var result = PackedVector2Array()
@@ -301,11 +272,7 @@ func get_star_points(center: Vector2, radius: float, points: int, inner_radius_r
 		angle += PI / points
 	
 	return result
-
-func clear_markers():
-	if drawing_area:
-		drawing_area.queue_redraw()
-
+	
 # Optional: Handle viewport resizing
 func _on_drawing_area_resized():
-	drawing_area.queue_redraw()
+	queue_redraw()

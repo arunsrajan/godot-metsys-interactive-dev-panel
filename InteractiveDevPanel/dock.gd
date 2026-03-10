@@ -37,8 +37,7 @@ var filter_categories = [
 	"Breakable Walls",
 	"Teleporters",
 	"Shopkeepers",
-	"Hidden Passages",
-	"Connections"
+	"Hidden Passages"
 ]
 
 # Editor references (will be populated dynamically)
@@ -211,6 +210,7 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	map_data = {
 		"layers": [],
 		"cells": {},
+		"labels": [],
 		"room_connections": [],
 		"version": "1.0",
 		"source_file": map_data_path
@@ -228,6 +228,18 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	var line_number = 0
 	var current_cell = null
 	var layers_sorted:Array[int] = []
+	var regex := RegEx.new()
+
+	# 2. Compile the pattern.
+	# "^" asserts the position at the start of the string.
+	# "\\d+" matches one or more digits.
+	# "," matches the literal comma character.
+	var pattern := "^\\d+,\\d+,\\d+/"
+	var error = regex.compile(pattern) # Compiles the regex pattern
+	if error != OK:
+		print("Pattern compilation error: ", error)
+		return false
+		
 	while not file.eof_reached():
 		var line = file.get_line().strip_edges()
 		line_number += 1
@@ -236,8 +248,11 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 		if line.is_empty() or line.begins_with("#"):
 			continue
 		
+		var match := regex.search(line)		
 		# Check if this is a coordinate line [x,y,layer]
-		if line.begins_with("[") and line.ends_with("]"):
+		if match != null:
+			parse_label_data_line(line, map_data.labels)
+		elif line.begins_with("[") and line.ends_with("]"):
 			# Parse coordinates
 			var coord_str = line.substr(1, line.length() - 2)
 			var coord_parts = coord_str.split(",")
@@ -283,7 +298,24 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	resolve_scene_uids_proper()
 	
 	status_label.text = "Map data loaded: %d cells found" % map_data.cells.size()
-	
+
+func parse_label_data_line(line: String, label_array: Array):
+	# Split by double pipe first (separates scene UID)
+	var parts = line.split("/")
+	if parts.size() < 2:
+		return
+	var axis_and_layer = parts[0].split(",")
+	var cell = {"x":int(axis_and_layer[0]), "y":int(axis_and_layer[1]), "layer":int(axis_and_layer[2]), "label":"", "dimension":[], "teleportations":""}
+	label_array.append(cell)
+	if parts.size() > 1:
+		cell.label = parts[1]
+	if parts.size() > 2:
+		print(parts[2])
+		var cell_dimension = parts[2].split("x")
+		cell.dimension.append(int(cell_dimension[0]))
+		cell.dimension.append(int(cell_dimension[1]))
+	if parts.size() > 3:
+		cell.teleportations = parts[3]
 
 func parse_cell_data_line(line: String, cell: Dictionary):
 	# Split by double pipe first (separates scene UID)
@@ -581,9 +613,6 @@ func passes_filters(metadata: Dictionary) -> bool:
 		return true
 	
 	if current_filters.get("Hidden Passages", false) and metadata.has_breakable_walls:
-		return true
-		
-	if current_filters.get("Connections", false):
 		return true
 	
 	return false
