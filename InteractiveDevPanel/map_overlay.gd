@@ -113,6 +113,7 @@ func _on_drawing_area_draw():
 func _draw():
 	var room_scale = Vector2(scale_value, scale_value)
 	var savepoint_texture = preload("res://addons/InteractiveDevPanel/assets/savepoint_idp.png")
+	var collectible_texture = preload("res://addons/InteractiveDevPanel/assets/collectible_idp.png")
 	var teleporter_texture = preload("res://addons/InteractiveDevPanel/assets/teleporter_idp.png")
 	var texture_rect:TextureRect = TextureRect.new()
 	var custom_script_resource = load("res://addons/InteractiveDevPanel/draw_marker.gd")
@@ -144,6 +145,15 @@ func _draw():
 			room.position = Vector2(position.x, position.y)
 			if room.has_node("SavePoint"):
 				draw_save_marker(position, savepoint_texture, texture_rect)
+			if room.has_node("Collectible"):
+				draw_save_marker(position+Vector2(55,0), collectible_texture, texture_rect)
+			var cell_key_label = "%d,%d,%d" % [current_layer, cell.x - cell_min_x, cell.y - cell_min_y]
+			var labels = map_data.labels.get(cell_key_label, null)
+			if labels:
+				for idx in range(map_data.labels[cell_key_label].size()):
+					if not map_data.labels[cell_key_label][idx].teleportations == "":
+						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect)
+				 
 	var label:Label = Label.new()
 	label.text = MetSys.get_layer_name(current_layer)
 	label.custom_minimum_size = Vector2(100,100)

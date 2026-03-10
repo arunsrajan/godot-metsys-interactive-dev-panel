@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nqnvp615xp4m"
-path="res://.godot/imported/teleporter_idp.png-502dbbfdf4710b478a8f743bbcb78425.ctex"
+uid="uid://c04exbjv20u7s"
+path="res://.godot/imported/collectible_idp.png-08615ed75803b9f81b8e74e74e709855.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/InteractiveDevPanel/assets/teleporter_idp.png"
-dest_files=["res://.godot/imported/teleporter_idp.png-502dbbfdf4710b478a8f743bbcb78425.ctex"]
+source_file="res://addons/InteractiveDevPanel/assets/collectible_idp.png"
+dest_files=["res://.godot/imported/collectible_idp.png-08615ed75803b9f81b8e74e74e709855.ctex"]
 
 [params]
 

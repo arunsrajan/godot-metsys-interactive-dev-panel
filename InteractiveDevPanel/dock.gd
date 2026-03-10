@@ -210,7 +210,7 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	map_data = {
 		"layers": [],
 		"cells": {},
-		"labels": [],
+		"labels": {},
 		"room_connections": [],
 		"version": "1.0",
 		"source_file": map_data_path
@@ -234,7 +234,7 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 	# "^" asserts the position at the start of the string.
 	# "\\d+" matches one or more digits.
 	# "," matches the literal comma character.
-	var pattern := "^\\d+,\\d+,\\d+/"
+	var pattern := r"^-?\d+,-?\d+,-?\d+/"
 	var error = regex.compile(pattern) # Compiles the regex pattern
 	if error != OK:
 		print("Pattern compilation error: ", error)
@@ -293,24 +293,25 @@ func load_map_data(map_data_path:String = "res://MapData.txt"):
 		map_data.layers.append({"idx": layer_idx, "layer_name": MetSys.get_layer_name(layer_idx)})
 		
 	file.close()
-	print("Map Data Cells", map_data.cells, " \n\nMap Data Layers ", map_data.layers)
 	# Resolve UIDs to actual scene paths
 	resolve_scene_uids_proper()
 	
 	status_label.text = "Map data loaded: %d cells found" % map_data.cells.size()
 
-func parse_label_data_line(line: String, label_array: Array):
+func parse_label_data_line(line: String, label_array: Dictionary):
 	# Split by double pipe first (separates scene UID)
 	var parts = line.split("/")
 	if parts.size() < 2:
 		return
 	var axis_and_layer = parts[0].split(",")
 	var cell = {"x":int(axis_and_layer[0]), "y":int(axis_and_layer[1]), "layer":int(axis_and_layer[2]), "label":"", "dimension":[], "teleportations":""}
-	label_array.append(cell)
+	var cell_key = "%d,%d,%d" % [cell.layer, cell.x, cell.y]
+	var cell_label = label_array.get(cell_key, [])
+	cell_label.append(cell)
+	label_array.set(cell_key, cell_label)
 	if parts.size() > 1:
 		cell.label = parts[1]
 	if parts.size() > 2:
-		print(parts[2])
 		var cell_dimension = parts[2].split("x")
 		cell.dimension.append(int(cell_dimension[0]))
 		cell.dimension.append(int(cell_dimension[1]))
@@ -359,7 +360,6 @@ func resolve_scene_uids_proper():
 			if ResourceUID.has_id(ResourceUID.text_to_id(cell.scene_uid)):
 				var uid_int = ResourceUID.text_to_id(cell.scene_uid)
 				cell.scene_path = ResourceUID.get_id_path(uid_int)
-				print("Resolved %s -> %s" % [cell.scene_uid, cell.scene_path])
 				continue
 			
 			# Method 2: Try loading directly with the UID string
