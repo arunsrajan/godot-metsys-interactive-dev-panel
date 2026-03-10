@@ -144,15 +144,15 @@ func _draw():
 			var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
 			room.position = Vector2(position.x, position.y)
 			if room.has_node("SavePoint"):
-				draw_save_marker(position, savepoint_texture, texture_rect)
+				draw_save_marker(position, savepoint_texture, texture_rect, "SavePoint:\n"+cell.get("scene_path"))
 			if room.has_node("Collectible"):
-				draw_save_marker(position+Vector2(55,0), collectible_texture, texture_rect)
+				draw_save_marker(position+Vector2(55,0), collectible_texture, texture_rect, "Collectible:\n"+cell.get("scene_path"))
 			var cell_key_label = "%d,%d,%d" % [current_layer, cell.x - cell_min_x, cell.y - cell_min_y]
 			var labels = map_data.labels.get(cell_key_label, null)
 			if labels:
 				for idx in range(map_data.labels[cell_key_label].size()):
 					if not map_data.labels[cell_key_label][idx].teleportations == "":
-						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect)
+						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect, "Teleportation Point:\n" + map_data.labels[cell_key_label][idx].teleportations)
 				 
 	var label:Label = Label.new()
 	label.text = MetSys.get_layer_name(current_layer)
@@ -265,10 +265,10 @@ func draw_shop_marker(pos: Vector2):
 	draw_string(ThemeDB.fallback_font, pos + Vector2(15, 25), "$",
 							HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.GOLD)
 
-func draw_save_marker(pos: Vector2, marker_texture, texture_rect:TextureRect):
+func draw_save_marker(pos: Vector2, marker_texture, texture_rect:TextureRect, info:String = ""):
 	# Draw bench/save icon
 	if marker_texture and pos and texture_rect:
-		texture_rect.append_marker(marker_texture, pos)
+		texture_rect.append_marker(marker_texture, pos, info)
 
 func get_star_points(center: Vector2, radius: float, points: int, inner_radius_ratio: float) -> PackedVector2Array:
 	var result = PackedVector2Array()
