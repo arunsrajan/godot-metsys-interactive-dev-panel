@@ -78,8 +78,7 @@ func _reload_map_data():
 	print("MapData.txt changed, reloading...")
 	
 	# Use call_deferred to avoid interrupting editor
-	load_map_data(map_data_path)
-	_on_zoom_changed(float(zoom_slider.value))
+	on_checkbox_selected(true, map_data_path)
 
 func _on_resources_reload(resources: PackedStringArray):
 	_deferred_check_map_data(resources[0])
@@ -460,9 +459,9 @@ func _scan_all_scenes(scenes_folder_local:String = "res://SampleProject/Maps/"):
 	_scene_scanner.scan_completed.connect(_on_scan_completed)
 	map_data_txts.clear()
 	_scene_scanner.scan_map_data_txt_completed.connect(func(map_data_txt_path):
-		map_data_path = map_data_txt_path
-		map_data_txts.append(map_data_path)
 		print("MapData.txt Found in path ", map_data_path)
+		map_data_path = map_data_txt_path
+		map_data_txts.append(map_data_path)		
 	)
 	print("Scenes Folder ", scenes_folder)
 	if scenes_folder == "":
@@ -744,13 +743,13 @@ func _on_scan_completed(scene_db: Dictionary):
 		stats.total_collectibles,
 		stats.total_enemies
 	]
-	
+
 	for key in map_data.cells.keys():
 		for key_scene_db in scene_database.keys():
 			if map_data.cells[key].scene_path == key_scene_db:
 				map_data.cells[key].meta_data = scene_db[key_scene_db]
 				break;
-
+	
 	# Update scene browser
 	update_scene_browser()
 	
@@ -784,7 +783,6 @@ func _remove_overlay():
 		for child in childs:
 			overlay.remove_child(child)
 			child.queue_free()
-			print("Scene ", child.name, " Freed")
 		scrollable_panel_container.remove_child(overlay)
 		overlay = null
 

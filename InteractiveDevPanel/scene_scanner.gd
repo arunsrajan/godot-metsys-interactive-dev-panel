@@ -74,7 +74,6 @@ func scan_all_scenes(root_path: String = "res://") -> Dictionary:
 	
 	scan_stats.total_scenes = scene_files.size()
 	var scanned = 0
-	
 	# Scan each scene
 	for scene_path in scene_files:
 		scanned += 1
@@ -104,14 +103,13 @@ func find_scene_files(dir_path: String, result_array: Array[String]):
 		elif file_name.ends_with(".tscn"):
 			var scene_path = dir_path.path_join(file_name)
 			var loaded_scene = load(scene_path).instantiate()
-			if loaded_scene.has_node("RoomInstance"):
+			if loaded_scene and loaded_scene.has_node("RoomInstance"):				
 				result_array.append(scene_path)
 		elif file_name.ends_with("MapData.txt"):
 			scan_map_data_txt_completed.emit(dir_path.path_join(file_name))
 		file_name = dir.get_next()
 	
-	dir.list_dir_end()
-
+	dir.list_dir_end()	
 func analyze_scene(scene_path: String) -> Dictionary:
 	var metadata = {
 		"type": "room",
@@ -297,7 +295,7 @@ func count_nodes(node: Node) -> int:
 		count += count_nodes(child)
 	return count
 
-func update_stats_from_metadata(metadata: Dictionary):
+func update_stats_from_metadata(metadata: Dictionary):	
 	scan_stats.total_collectibles += metadata.collectibles.size()
 	scan_stats.total_enemies += metadata.enemies.size()
 	scan_stats.total_save_points += metadata.save_points.size()

@@ -70,11 +70,12 @@ func _on_drawing_area_draw():
 	cell_min_x = +3000000
 	for cell_key in map_data.cells:
 		var cell = map_data.cells[cell_key]
-		if not cell.get("scene_path") == "" and cell.get("layer") == current_layer:
+		if cell.get("layer") == current_layer:
 			cell_min_x = min( cell.get("x"), cell_min_x)
 			cell_min_y = min( cell.get("y"), cell_min_y)
 			cell_max_x = max( cell.get("x"), cell_max_x)
 			cell_max_y = max( cell.get("y"), cell_max_y)
+		if not cell.get("scene_path") == "" and cell.get("layer") == current_layer:
 			if cell_transform.has(cell.get("scene_path")):
 				cell_transform[cell.get("scene_path")].x = min(cell_transform[cell.get("scene_path")].x, cell.get("x"));
 				cell_transform[cell.get("scene_path")].y = min(cell_transform[cell.get("scene_path")].y, cell.get("y"));
@@ -82,10 +83,8 @@ func _on_drawing_area_draw():
 				cell_transform[cell.get("scene_path")].min_y = min(cell_transform[cell.get("scene_path")].min_y, cell.get("y"));
 				cell_transform[cell.get("scene_path")].max_x = max(cell_transform[cell.get("scene_path")].max_x, cell.get("x"));
 				cell_transform[cell.get("scene_path")].max_y = max(cell_transform[cell.get("scene_path")].max_y, cell.get("y"));
-
 			else:
 				cell_transform.set(cell.get("scene_path"), {"x":cell.get("x"), "y":cell.get("y"),"scene_path":cell.get("scene_path"), "min_x":cell.get("x"), "max_x":cell.get("x"), "min_y":cell.get("y"), "max_y":cell.get("y"), "width":0, "height":0, "cell_room": cell})
-	
 	if cell_min_x < 0:
 		cell_min_x = abs(cell_min_x)
 	else:
@@ -137,7 +136,7 @@ func _draw():
 				draw_line(Vector2(min_x, min_y) * room_size * room_scale, Vector2(max_x, min_y) * room_size * room_scale, Color.RED, 3)
 	for cell_key in cell_transform:
 		var cell  = cell_transform[cell_key]
-		if not cell.get("scene_path") == "":
+		if not cell.get("scene_path") == "":			
 			var room = load(cell.get("scene_path")).instantiate()
 			add_child(room)
 			room.scale = room_scale
