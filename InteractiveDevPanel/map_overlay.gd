@@ -145,14 +145,16 @@ func _draw():
 		if not cell.get("scene_path") == "":			
 			var room = load(cell.get("scene_path")).instantiate()
 			add_child(room)
-			room.scale = room_scale
 			var room_scale_room_size = room_size * room_scale
 			var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
-			room.position = Vector2(position.x, position.y)
 			if room.has_node("SavePoint") and current_filters["Save Points"]:
-				draw_save_marker(position, savepoint_texture, texture_rect, "Save Points:\n"+cell.get("scene_path"))
+				var savepoint_position = room.get_node("SavePoint")
+				draw_save_marker(savepoint_position.position * room_scale + position - Vector2(savepoint_texture.get_width() / 2, savepoint_texture.get_height()), savepoint_texture, texture_rect, "Save Points:\n"+cell.get("scene_path"))
 			if room.has_node("Collectible") and current_filters["Collectibles"]:
-				draw_save_marker(position+Vector2(55,0), collectible_texture, texture_rect, "Collectible:\n"+cell.get("scene_path"))
+				var collectible_position = room.get_node("Collectible")
+				draw_save_marker(collectible_position.position * room_scale + position - Vector2(collectible_texture.get_width() / 2, collectible_texture.get_height()), collectible_texture, texture_rect, "Collectible:\n"+cell.get("scene_path"))
+			room.scale = room_scale
+			room.position = Vector2(position.x, position.y)
 			var cell_key_label = "%d,%d,%d" % [current_layer, cell.x - cell_min_x, cell.y - cell_min_y]
 			var labels = map_data.labels.get(cell_key_label, null)
 			if labels:
