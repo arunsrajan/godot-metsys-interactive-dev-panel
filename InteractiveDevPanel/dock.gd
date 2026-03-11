@@ -159,7 +159,13 @@ func setup_ui_connections():
 func setup_filters():
 	# Clear existing
 	for child in filter_container.get_children():
+		filter_container.remove_child(child)
 		child.queue_free()
+	var custom_elements = MetSys.map_data.custom_elements
+	for element in MetSys.map_data.custom_elements:
+		var element_data := MetSys.map_data.custom_elements[element]
+		if not filter_categories.has(element_data.name.capitalize()):
+			filter_categories.append(element_data.name.capitalize())
 	
 	# Create filter checkboxes
 	for category in filter_categories:
@@ -293,7 +299,7 @@ func parse_label_data_line(line: String, label_array: Dictionary):
 	if parts.size() < 2:
 		return
 	var axis_and_layer = parts[0].split(",")
-	var cell = {"x":int(axis_and_layer[0]), "y":int(axis_and_layer[1]), "layer":int(axis_and_layer[2]), "label":"", "dimension":[], "teleportations":""}
+	var cell = {"x":int(axis_and_layer[0]), "y":int(axis_and_layer[1]), "layer":int(axis_and_layer[2]), "label":"", "dimension":[], "label_info":""}
 	var cell_key = "%d,%d,%d" % [cell.layer, cell.x, cell.y]
 	var cell_label = label_array.get(cell_key, [])
 	cell_label.append(cell)
@@ -305,7 +311,7 @@ func parse_label_data_line(line: String, label_array: Dictionary):
 		cell.dimension.append(int(cell_dimension[0]))
 		cell.dimension.append(int(cell_dimension[1]))
 	if parts.size() > 3:
-		cell.teleportations = parts[3]
+		cell.label_info = parts[3]
 
 func parse_cell_data_line(line: String, cell: Dictionary):
 	# Split by double pipe first (separates scene UID)

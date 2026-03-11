@@ -134,6 +134,11 @@ func _draw():
 				draw_line(Vector2(min_x, max_y) * room_size * room_scale, Vector2(min_x, min_y) * room_size * room_scale, Color.RED, 3)
 			if (connections[3] == 0):
 				draw_line(Vector2(min_x, min_y) * room_size * room_scale, Vector2(max_x, min_y) * room_size * room_scale, Color.RED, 3)
+	var layers_local = []
+	var labels_local = []
+	for layer in map_data.layers:
+		layers_local.append(layer.layer_name)
+		
 	for cell_key in cell_transform:
 		var cell  = cell_transform[cell_key]
 		if not cell.get("scene_path") == "":			
@@ -151,9 +156,17 @@ func _draw():
 			var labels = map_data.labels.get(cell_key_label, null)
 			if labels:
 				for idx in range(map_data.labels[cell_key_label].size()):
-					if not map_data.labels[cell_key_label][idx].teleportations == "" and current_filters["Teleporters"]:
-						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect, "Teleportation Point:\n" + map_data.labels[cell_key_label][idx].teleportations)
-				 
+					if not map_data.labels[cell_key_label][idx].label_info == "" and current_filters["Teleporters"] and layers_local.has(map_data.labels[cell_key_label][idx].label_info):
+						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect, "Teleportation Point:\n" + map_data.labels[cell_key_label][idx].label_info)
+	for cell_key_label in map_data.labels:		
+		for idx in range(map_data.labels[cell_key_label].size()):
+			var cell_label = map_data.labels[cell_key_label][idx]
+			if current_filters[cell_label.label.capitalize()] and not layers_local.has(cell_label.label_info) and cell_label.layer == current_layer:
+				var min_x = cell_label.get("x") + cell_min_x
+				var min_y = cell_label.get("y") + cell_min_y
+				var room_scale_room_size = room_size * room_scale
+				var position = room_scale_room_size * Vector2(min_x, min_y)
+				draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect, cell_label.label_info if not cell_label.label_info == "" else cell_label.label.capitalize())
 	var label:Label = Label.new()
 	label.text = MetSys.get_layer_name(current_layer)
 	label.custom_minimum_size = Vector2(100,100)
