@@ -1,304 +1,368 @@
-# map_overlay.gd
 @tool
 extends TextureRect
-
 class_name MapOverlay
 
-var current_filters = {}
-var map_data = {}
-var map_view_reference = null  # Reference to the MetSys MapView
-var cell_max_x:float = 0;
-var cell_max_y:float = 0;
-var cell_min_x:float = 0
-var cell_min_y:float = 0;
-# Create a Control node to handle drawing
-var scale_value=0.4
-var room_size  = Vector2(864, 480)
-var current_layer = 0;
-var cell_transform: Dictionary
+signal room_clicked(scene_path: String)
+signal room_hovered(scene_path: String, screen_pos: Vector2)
+signal room_unhovered()
+
+const SAVEPOINT_TEXTURE := preload("res://addons/InteractiveDevPanel/assets/savepoint_idp.png")
+const COLLECTIBLE_TEXTURE := preload("res://addons/InteractiveDevPanel/assets/collectible_idp.png")
+const TELEPORTER_TEXTURE := preload("res://addons/InteractiveDevPanel/assets/teleporter_idp.png")
+const LABELS_TEXTURE := preload("res://addons/InteractiveDevPanel/assets/labels_idp.png")
+const DRAW_MARKER_SCRIPT := preload("res://addons/InteractiveDevPanel/draw_marker.gd")
+
+# Room type overlay colors
+const COLOR_BOSS := Color(1.0, 0.15, 0.15, 0.25)
+const COLOR_SAVE := Color(0.15, 0.4, 1.0, 0.25)
+const COLOR_SHOP := Color(1.0, 0.75, 0.1, 0.25)
+const COLOR_TELEPORTER := Color(0.15, 1.0, 0.3, 0.25)
+const COLOR_COLLECTIBLE := Color(1.0, 0.85, 0.0, 0.2)
+
+var current_filters: Dictionary = {}
+var map_data: Dictionary = {}
+var map_view_reference = null
+var scale_value: float = 0.4
+var room_size: Vector2 = Vector2(864, 480)
+var current_layer: int = 0
+var cell_max_x: float = 0
+var cell_max_y: float = 0
+var cell_min_x: float = 0
+var cell_min_y: float = 0
+
+var _offset_x: float = 0
+var _offset_y: float = 0
+var _room_transforms: Dictionary = {}
+var _marker_entries: Array = []
+var _room_rects: Dictionary = {}
+var _scene_db: Dictionary = {}
+
+var _panning := false
+var _pan_start: Vector2 = Vector2.ZERO
+var _scroll_start: Vector2 = Vector2.ZERO
+
 func _ready():
-	# Create a Control node for drawing if it doesn't exist
-	visibility_changed.connect(_on_drawing_area_draw)
+	visibility_changed.connect(_rebuild)
 	stretch_mode = TextureRect.STRETCH_SCALE
 	expand_mode = ExpandMode.EXPAND_IGNORE_SIZE
-	scale = Vector2(0.4, 0.4)
+	mouse_filter = Control.MOUSE_FILTER_PASS
 
-func set_scale_value(value:float):
+func set_scene_database(db: Dictionary):
+	_scene_db = db
+
+func set_scale_value(value: float):
 	scale_value = value
-	
-func set_room_size(size:Vector2):
-	room_size = size
+	_rebuild()
 
-func update_filters(filters: Dictionary):
-	current_filters = filters
-	_on_drawing_area_draw()
-	
-func update_from_map_data(data: Dictionary):
-	map_data = data
+func set_room_size(size: Vector2):
+	room_size = size
 
 func set_map_view(map_view):
 	map_view_reference = map_view
 
-func set_layer(layer:int):
+func set_layer(layer: int):
 	current_layer = layer
-	_on_drawing_area_draw()
+	_rebuild()
 
-func _on_drawing_area_draw():
-	if not map_data or not map_data.has("cells") or not map_data.cells:
+func update_filters(filters: Dictionary):
+	current_filters = filters
+	_rebuild()
+
+func update_from_map_data(data: Dictionary):
+	map_data = data
+
+func get_room_center(scene_path: String) -> Vector2:
+	if _room_rects.has(scene_path):
+		return _room_rects[scene_path].get_center()
+	return Vector2.ZERO
+
+func get_total_map_rect() -> Rect2:
+	if cell_max_x <= 0 or cell_max_y <= 0:
+		return Rect2()
+	var room_scale_vec := Vector2(scale_value, scale_value)
+	var total_size := room_size * room_scale_vec * Vector2(cell_max_x, cell_max_y)
+	return Rect2(Vector2.ZERO, total_size)
+
+func _rebuild():
+	if not map_data or not map_data.has("cells") or map_data.cells.is_empty():
 		return
-	var children = get_children()
-	# Iterate through the list and free each child
-	for child in children:
+	_clear_children()
+	_compute_cell_transform()
+	_spawn_rooms_and_markers()
+	queue_redraw()
+
+func _clear_children():
+	for child in get_children():
 		remove_child(child)
 		child.queue_free()
-	# Get the actual map view position and zoom if available
-	var view_offset = Vector2.ZERO
-	var view_zoom = 1.0
-	
-	if map_view_reference:
-		# Try to get view properties from MetSys MapView
-		if map_view_reference.has_method("get_view_offset"):
-			view_offset = map_view_reference.get_view_offset()
-		if map_view_reference.has_method("get_zoom"):
-			view_zoom = map_view_reference.get_zoom()
-	
-	# Draw markers for each cell based on filters
-	cell_transform = {}
-	cell_max_x = -3000000
-	cell_max_y = -3000000
-	cell_min_y = +3000000
-	cell_min_x = +3000000
-	for cell_key in map_data.cells:
-		var cell = map_data.cells[cell_key]
-		if cell.get("layer") == current_layer:
-			cell_min_x = min( cell.get("x"), cell_min_x)
-			cell_min_y = min( cell.get("y"), cell_min_y)
-			cell_max_x = max( cell.get("x"), cell_max_x)
-			cell_max_y = max( cell.get("y"), cell_max_y)
-		if not cell.get("scene_path") == "" and cell.get("layer") == current_layer:
-			if cell_transform.has(cell.get("scene_path")):
-				cell_transform[cell.get("scene_path")].x = min(cell_transform[cell.get("scene_path")].x, cell.get("x"));
-				cell_transform[cell.get("scene_path")].y = min(cell_transform[cell.get("scene_path")].y, cell.get("y"));
-				cell_transform[cell.get("scene_path")].min_x = min(cell_transform[cell.get("scene_path")].min_x, cell.get("x"));
-				cell_transform[cell.get("scene_path")].min_y = min(cell_transform[cell.get("scene_path")].min_y, cell.get("y"));
-				cell_transform[cell.get("scene_path")].max_x = max(cell_transform[cell.get("scene_path")].max_x, cell.get("x"));
-				cell_transform[cell.get("scene_path")].max_y = max(cell_transform[cell.get("scene_path")].max_y, cell.get("y"));
-			else:
-				cell_transform.set(cell.get("scene_path"), {"x":cell.get("x"), "y":cell.get("y"),"scene_path":cell.get("scene_path"), "min_x":cell.get("x"), "max_x":cell.get("x"), "min_y":cell.get("y"), "max_y":cell.get("y"), "width":0, "height":0, "cell_room": cell})
-	if cell_min_x < 0:
-		cell_min_x = abs(cell_min_x)
-	else:
-		cell_min_x = 0;
-	if cell_min_y < 0:
-		cell_min_y = abs(cell_min_y)
-	else:
-		cell_min_y = 0;
-	cell_max_x += cell_min_x + 1
-	cell_max_y += cell_min_y + 1
-	if cell_min_y > 0 or cell_min_x > 0:
-		for cell_key in cell_transform:
-			cell_transform[cell_key].x += cell_min_x
-			cell_transform[cell_key].y += cell_min_y
-			cell_transform[cell_key].max_x += cell_min_x
-			cell_transform[cell_key].min_x += cell_min_x
-			cell_transform[cell_key].max_y += cell_min_y
-			cell_transform[cell_key].min_y += cell_min_y
-			cell_transform[cell_key].width = cell_transform[cell_key].max_x - cell_transform[cell_key].min_x
-			cell_transform[cell_key].height = cell_transform[cell_key].max_y - cell_transform[cell_key].min_y
-			cell_transform[cell_key].width = 1 if cell_transform[cell_key].width == 0 else cell_transform[cell_key].width
-			cell_transform[cell_key].height = 1 if cell_transform[cell_key].height == 0 else cell_transform[cell_key].height
-	
-	queue_redraw()
 
-func _draw():
-	var room_scale = Vector2(scale_value, scale_value)
-	var savepoint_texture = preload("res://addons/InteractiveDevPanel/assets/savepoint_idp.png")
-	var collectible_texture = preload("res://addons/InteractiveDevPanel/assets/collectible_idp.png")
-	var teleporter_texture = preload("res://addons/InteractiveDevPanel/assets/teleporter_idp.png")
-	var labels_texture = preload("res://addons/InteractiveDevPanel/assets/labels_idp.png")
-	var texture_rect:TextureRect = TextureRect.new()
-	var custom_script_resource = load("res://addons/InteractiveDevPanel/draw_marker.gd")
-	texture_rect.set_script(custom_script_resource)
+func _find_room_instance(node: Node) -> Node:
+	if node.name == "RoomInstance" or node.is_class("RoomInstance"):
+		return node
+	for child in node.get_children():
+		var result := _find_room_instance(child)
+		if result:
+			return result
+	return null
+
+func _compute_cell_transform():
+	_room_transforms.clear()
+	_marker_entries.clear()
+	_room_rects.clear()
+	cell_min_x = 0
+	cell_min_y = 0
+	cell_max_x = 0
+	cell_max_y = 0
+	_offset_x = 0
+	_offset_y = 0
+
+	var raw_min_x := 0
+	var raw_min_y := 0
+	var raw_max_x := 0
+	var raw_max_y := 0
+	var first := true
+
 	for cell_key in map_data.cells:
-		var cell = map_data.cells[cell_key]
-		if cell.get("layer") == current_layer:
-			var connections = cell.get("connections")
-			var min_x = cell.get("x") + cell_min_x
-			var min_y = cell.get("y") + cell_min_y
-			var max_x = min_x + 1
-			var max_y = min_y + 1
-			if (connections[0] == 0):
-				draw_line(Vector2(max_x, min_y) * room_size * room_scale, Vector2(max_x, max_y) * room_size * room_scale, Color.RED, 3)
-			if (connections[1] == 0):
-				draw_line(Vector2(max_x, max_y) * room_size * room_scale, Vector2(min_x, max_y) * room_size * room_scale, Color.RED, 3)
-			if (connections[2] == 0):
-				draw_line(Vector2(min_x, max_y) * room_size * room_scale, Vector2(min_x, min_y) * room_size * room_scale, Color.RED, 3)
-			if (connections[3] == 0):
-				draw_line(Vector2(min_x, min_y) * room_size * room_scale, Vector2(max_x, min_y) * room_size * room_scale, Color.RED, 3)
-	var layers_local = []
-	var labels_local = []
+		var cell: Dictionary = map_data.cells[cell_key]
+		if cell.get("layer") != current_layer:
+			continue
+		var cx: int = cell.get("x", 0)
+		var cy: int = cell.get("y", 0)
+		if first:
+			raw_min_x = cx
+			raw_max_x = cx
+			raw_min_y = cy
+			raw_max_y = cy
+			first = false
+		else:
+			raw_min_x = min(cx, raw_min_x)
+			raw_min_y = min(cy, raw_min_y)
+			raw_max_x = max(cx, raw_max_x)
+			raw_max_y = max(cy, raw_max_y)
+
+	if first:
+		return
+
+	if raw_min_x < 0:
+		_offset_x = float(abs(raw_min_x))
+	if raw_min_y < 0:
+		_offset_y = float(abs(raw_min_y))
+
+	cell_min_x = _offset_x
+	cell_min_y = _offset_y
+	cell_max_x = float(raw_max_x) + _offset_x + 1.0
+	cell_max_y = float(raw_max_y) + _offset_y + 1.0
+
+	for cell_key in map_data.cells:
+		var cell: Dictionary = map_data.cells[cell_key]
+		if cell.get("layer") != current_layer:
+			continue
+		var scene_path: String = cell.get("scene_path", "")
+		if scene_path.is_empty():
+			continue
+		var cx: float = float(cell.get("x", 0)) + _offset_x
+		var cy: float = float(cell.get("y", 0)) + _offset_y
+		if _room_transforms.has(scene_path):
+			var t: Dictionary = _room_transforms[scene_path]
+			t.x = min(t.x, cx)
+			t.y = min(t.y, cy)
+			t.min_x = min(t.min_x, cx)
+			t.min_y = min(t.min_y, cy)
+			t.max_x = max(t.max_x, cx + 1.0)
+			t.max_y = max(t.max_y, cy + 1.0)
+		else:
+			_room_transforms[scene_path] = {
+				"x": cx, "y": cy,
+				"min_x": cx, "min_y": cy,
+				"max_x": cx + 1.0, "max_y": cy + 1.0,
+				"scene_path": scene_path,
+				"cell_room": cell
+			}
+
+	for scene_path in _room_transforms:
+		var t: Dictionary = _room_transforms[scene_path]
+		t.width = max(1.0, t.max_x - t.min_x)
+		t.height = max(1.0, t.max_y - t.min_y)
+
+func _get_room_type_overlay(cell: Dictionary) -> Color:
+	var meta = cell.get("meta_data", {})
+	if meta is Dictionary and not meta.is_empty():
+		if meta.get("has_boss", false):
+			return COLOR_BOSS
+		if meta.get("has_shopkeeper", false):
+			return COLOR_SHOP
+		if meta.get("has_teleporter", false):
+			return COLOR_TELEPORTER
+		if not meta.get("save_points", []).is_empty():
+			return COLOR_SAVE
+		if not meta.get("collectibles", []).is_empty():
+			return COLOR_COLLECTIBLE
+	return Color.TRANSPARENT
+
+func _spawn_rooms_and_markers():
+	var room_scale_vec := Vector2(scale_value, scale_value)
+	var room_scaled := room_size * room_scale_vec
+
+	for scene_path in _room_transforms:
+		var t: Dictionary = _room_transforms[scene_path]
+		if not ResourceLoader.exists(scene_path):
+			continue
+		var packed: PackedScene = load(scene_path)
+		if not packed:
+			continue
+		var instance := packed.instantiate()
+		if not instance:
+			continue
+
+		var cell_size := room_size
+		var room_inst := instance.get_node_or_null("RoomInstance")
+		if not room_inst:
+			room_inst = _find_room_instance(instance)
+		if room_inst and "cell_size" in room_inst:
+			var cs: Vector2 = room_inst.cell_size
+			if cs.x > 0 and cs.y > 0:
+				cell_size = cs
+
+		var instance_scale := room_scaled / cell_size
+		instance.scale = instance_scale
+		instance.position = room_scaled * Vector2(t.x, t.y)
+		add_child(instance)
+
+		# Store room rect for click/hover detection
+		var room_pixel_size := room_scaled * Vector2(t.width, t.height)
+		_room_rects[scene_path] = Rect2(instance.position, room_pixel_size)
+
+		# Apply room type color overlay
+		var overlay_color := _get_room_type_overlay(t.cell_room)
+		if overlay_color != Color.TRANSPARENT:
+			var color_rect := ColorRect.new()
+			color_rect.color = overlay_color
+			color_rect.size = room_pixel_size
+			color_rect.position = instance.position
+			color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(color_rect)
+
+		var pos = instance.position
+		if instance.has_node("SavePoint") and current_filters.get("Save Points", false):
+			var sp := instance.get_node("SavePoint")
+			var sp_pos = pos + sp.position * instance_scale - Vector2(SAVEPOINT_TEXTURE.get_width() / 2.0, SAVEPOINT_TEXTURE.get_height())
+			_marker_entries.append({"texture": SAVEPOINT_TEXTURE, "pos": sp_pos, "info": "Save Points:\n" + scene_path})
+		if instance.has_node("Collectible") and current_filters.get("Collectibles", false):
+			var cp := instance.get_node("Collectible")
+			var cp_pos = pos + cp.position * instance_scale - Vector2(COLLECTIBLE_TEXTURE.get_width() / 2.0, COLLECTIBLE_TEXTURE.get_height())
+			_marker_entries.append({"texture": COLLECTIBLE_TEXTURE, "pos": cp_pos, "info": "Collectible:\n" + scene_path})
+		var cell_key_label := "%d,%d,%d" % [current_layer, int(t.x - _offset_x), int(t.y - _offset_y)]
+		if map_data.labels.has(cell_key_label):
+			for lbl in map_data.labels[cell_key_label]:
+				if not lbl.label_info.is_empty() and current_filters.get("Teleporters", false):
+					_marker_entries.append({"texture": TELEPORTER_TEXTURE, "pos": pos + Vector2(10, 10), "info": "Teleportation Point:\n" + lbl.label_info})
+
+	var layers_local: Array[String] = []
 	for layer in map_data.layers:
 		layers_local.append(layer.layer_name)
-		
-	for cell_key in cell_transform:
-		var cell  = cell_transform[cell_key]
-		if not cell.get("scene_path") == "":			
-			var room = load(cell.get("scene_path")).instantiate()
-			add_child(room)
-			var room_scale_room_size = room_size * room_scale
-			var position = room_scale_room_size * Vector2(cell.get("x"), cell.get("y"))
-			if room.has_node("SavePoint") and current_filters["Save Points"]:
-				var savepoint_position = room.get_node("SavePoint")
-				draw_save_marker(savepoint_position.position * room_scale + position - Vector2(savepoint_texture.get_width() / 2, savepoint_texture.get_height()), savepoint_texture, texture_rect, "Save Points:\n"+cell.get("scene_path"))
-			if room.has_node("Collectible") and current_filters["Collectibles"]:
-				var collectible_position = room.get_node("Collectible")
-				draw_save_marker(collectible_position.position * room_scale + position - Vector2(collectible_texture.get_width() / 2, collectible_texture.get_height()), collectible_texture, texture_rect, "Collectible:\n"+cell.get("scene_path"))
-			room.scale = room_scale
-			room.position = Vector2(position.x, position.y)
-			var cell_key_label = "%d,%d,%d" % [current_layer, cell.x - cell_min_x, cell.y - cell_min_y]
-			var labels = map_data.labels.get(cell_key_label, null)
-			if labels:
-				for idx in range(map_data.labels[cell_key_label].size()):
-					if not map_data.labels[cell_key_label][idx].label_info == "" and current_filters["Teleporters"] and layers_local.has(map_data.labels[cell_key_label][idx].label_info):
-						draw_save_marker(position+Vector2(10,10), teleporter_texture, texture_rect, "Teleportation Point:\n" + map_data.labels[cell_key_label][idx].label_info)
-	for cell_key_label in map_data.labels:		
+
+	for cell_key_label in map_data.labels:
 		for idx in range(map_data.labels[cell_key_label].size()):
-			var cell_label = map_data.labels[cell_key_label][idx]
-			if current_filters[cell_label.label.capitalize()] and not layers_local.has(cell_label.label_info) and cell_label.layer == current_layer:
-				var min_x = cell_label.get("x") + cell_min_x
-				var min_y = cell_label.get("y") + cell_min_y
-				var room_scale_room_size = room_size * room_scale
-				var position = room_scale_room_size * Vector2(min_x, min_y)
-				draw_save_marker(position+Vector2(10,10), labels_texture, texture_rect, cell_label.label_info if not cell_label.label_info == "" else cell_label.label.capitalize())
-	var label:Label = Label.new()
-	label.text = MetSys.get_layer_name(current_layer)
-	label.custom_minimum_size = Vector2(100,100)
-	label.position = Vector2(0, 0)
-	add_child(label)
-	add_child(texture_rect)
-	texture_rect.queue_redraw()
-			
-func should_draw_cell(cell: Dictionary, metadata: Dictionary) -> bool:
-	# If no filters active, don't draw overlays
-	var any_active = false
-	for filter_name in current_filters:
-		if current_filters[filter_name]:
-			any_active = true
-			break
-	
-	if not any_active:
-		return false
-	
-	# Check each active filter
-	if current_filters.get("Boss Rooms", false) and metadata.get("has_boss", false):
-		return true
-	
-	if current_filters.get("Collectibles", false) and not metadata.get("collectibles", []).is_empty():
-		return true
-	
-	if current_filters.get("Save Points", false) and not metadata.get("save_points", []).is_empty():
-		return true
-	
-	if current_filters.get("Breakable Walls", false) and metadata.get("has_breakable_walls", false):
-		return true
-	
-	if current_filters.get("Teleporters", false) and metadata.get("has_teleporter", false):
-		return true
-	
-	if current_filters.get("Shopkeepers", false) and metadata.get("has_shopkeeper", false):
-		return true
-	
-	return false
+			var cell_label: Dictionary = map_data.labels[cell_key_label][idx]
+			if cell_label.layer != current_layer:
+				continue
+			if not current_filters.get(cell_label.label.capitalize(), false):
+				continue
+			if layers_local.has(cell_label.label_info):
+				continue
+			var label_x: float = float(cell_label.get("x", 0)) + _offset_x
+			var label_y: float = float(cell_label.get("y", 0)) + _offset_y
+			var label_pos := room_scaled * Vector2(label_x, label_y) + Vector2(10, 10)
+			var label_info: String = cell_label.label_info if not cell_label.label_info.is_empty() else cell_label.label.capitalize()
+			_marker_entries.append({"texture": LABELS_TEXTURE, "pos": label_pos, "info": label_info})
 
-func draw_cell_marker(cell: Dictionary, metadata: Dictionary, view_offset: Vector2, view_zoom: float):
+	var layer_label := Label.new()
+	layer_label.text = MetSys.get_layer_name(current_layer)
+	layer_label.custom_minimum_size = Vector2(100, 100)
+	layer_label.position = Vector2.ZERO
+	add_child(layer_label)
 
-	# Get cell screen position (depends on your MetSys map view)
-	var screen_pos = get_cell_screen_position(cell, view_offset, view_zoom)
-	
-	# Draw marker based on type
-	if metadata.get("has_boss", false):
-		draw_boss_marker(screen_pos)
-	
-	var collectible_count = metadata.get("collectibles", []).size()
-	if collectible_count > 0:
-		draw_collectible_marker(screen_pos, collectible_count)
-	
-	if metadata.get("has_shopkeeper", false):
-		draw_shop_marker(screen_pos)
-	
-	if metadata.get("has_save_points", false) or not metadata.get("save_points", []).is_empty():
-		draw_save_marker(screen_pos, null, null)
+	if not _marker_entries.is_empty():
+		var marker_rect := TextureRect.new()
+		marker_rect.set_script(DRAW_MARKER_SCRIPT)
+		marker_rect.mouse_filter = Control.MOUSE_FILTER_STOP
+		marker_rect.size = room_scaled * Vector2(cell_max_x, cell_max_y)
+		marker_rect.set_meta("room_rects", _room_rects)
+		marker_rect.set_meta("scene_db", _scene_db)
+		for entry in _marker_entries:
+			marker_rect.append_marker(entry.texture, entry.pos, entry.info)
+		add_child(marker_rect)
+		marker_rect.queue_redraw()
 
-func get_room_cell_screen_position(cell: Dictionary, view_offset: Vector2, view_zoom: float) -> Vector2:
-	# This assumes each cell is 256x256 (default RoomInstance cell_size)
-	var cell_size = 256
-	var base_pos = Vector2(cell.x * cell_size, cell.y * cell_size)
-	
-	# Apply view transform
-	var view_transform = (base_pos - view_offset) * view_zoom + get_viewport().size * 0.5
-	return view_transform
+func _draw():
+	var room_scale_vec := Vector2(scale_value, scale_value)
+	var room_scaled := room_size * room_scale_vec
+	var arrow_size := 8.0 * scale_value
 
-func get_cell_screen_position(cell: Dictionary, view_offset: Vector2, view_zoom: float) -> Vector2:
-	# Try to use MetSys MapView for conversion if available
-	if map_view_reference and map_view_reference.has_method("cell_to_screen"):
-		return map_view_reference.cell_to_screen(cell.layer, cell.coords)
-	
-	# Fallback: calculate approximate position
-	# This assumes each cell is 256x256 (default RoomInstance cell_size)
-	var cell_size = 20
-	var base_pos = Vector2(cell.x * cell_size, cell.y * cell_size)
-	
-	# Apply view transform
-	return (base_pos - view_offset) * view_zoom + get_viewport().size * 0.5
+	for cell_key in map_data.cells:
+		var cell: Dictionary = map_data.cells[cell_key]
+		if cell.get("layer") != current_layer:
+			continue
+		var connections: Array = cell.get("connections", [0, 0, 0, 0])
+		var cx: float = float(cell.get("x", 0)) + cell_min_x
+		var cy: float = float(cell.get("y", 0)) + cell_min_y
+		var top_left := room_scaled * Vector2(cx, cy)
+		var top_right := room_scaled * Vector2(cx + 1.0, cy)
+		var bottom_left := room_scaled * Vector2(cx, cy + 1.0)
+		var bottom_right := room_scaled * Vector2(cx + 1.0, cy + 1.0)
+		# Right wall
+		if connections[0] == 0:
+			draw_line(top_right, bottom_right, Color.RED, 3)
+		else:
+			_draw_connection_arrow(top_right, bottom_right, Vector2.RIGHT, arrow_size)
+		# Bottom wall
+		if connections[1] == 0:
+			draw_line(bottom_right, bottom_left, Color.RED, 3)
+		else:
+			_draw_connection_arrow(bottom_right, bottom_left, Vector2.DOWN, arrow_size)
+		# Left wall
+		if connections[2] == 0:
+			draw_line(bottom_left, top_left, Color.RED, 3)
+		else:
+			_draw_connection_arrow(bottom_left, top_left, Vector2.LEFT, arrow_size)
+		# Top wall
+		if connections[3] == 0:
+			draw_line(top_left, top_right, Color.RED, 3)
+		else:
+			_draw_connection_arrow(top_left, top_right, Vector2.UP, arrow_size)
 
-func draw_boss_marker(pos: Vector2):
-	# Draw outer circle
-	draw_circle(pos, 15, Color(1, 0, 0, 0.7))  # Semi-transparent red
-	draw_circle(pos, 12, Color(1, 0.2, 0.2, 0.9))  # Brighter inner
-	
-	# Draw skull symbol (simple X)
-	draw_line(pos + Vector2(-6, -6), pos + Vector2(6, 6), Color.WHITE, 2)
-	draw_line(pos + Vector2(6, -6), pos + Vector2(-6, 6), Color.WHITE, 2)
-	
-	# Draw label if zoomed in enough
-	if get_global_transform().get_scale().x > 0.8:
-		draw_string(ThemeDB.fallback_font, pos + Vector2(20, -10), "BOSS", 
-								HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.RED)
+func _draw_connection_arrow(from: Vector2, to: Vector2, direction: Vector2, arrow_size: float):
+	var mid := (from + to) / 2.0
+	var perp := Vector2(-direction.y, direction.x)
+	var shaft_end := mid + direction * arrow_size
+	var wing_base := mid + direction * arrow_size * 0.5
+	draw_line(mid, shaft_end, Color.GREEN, 2)
+	draw_line(shaft_end, wing_base + perp * arrow_size * 0.6, Color.GREEN, 2)
+	draw_line(shaft_end, wing_base - perp * arrow_size * 0.6, Color.GREEN, 2)
 
-func draw_collectible_marker(pos: Vector2, count: int):
-	# Draw star/gem shape
-	var points = get_star_points(pos, 10, 5, 5)
-	draw_colored_polygon(points, Color(1, 0.8, 0, 0.8))  # Gold
-	
-	# Draw count
-	var count_text = "x%d" % count
-	draw_string(ThemeDB.fallback_font, pos + Vector2(15, 5), count_text,
-							HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.YELLOW)
-
-func draw_shop_marker(pos: Vector2):
-	# Draw coin shape
-	draw_circle(pos + Vector2(0, 30), 8, Color(0.8, 0.6, 0, 0.8))  # Gold
-	draw_string(ThemeDB.fallback_font, pos + Vector2(15, 25), "$",
-							HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.GOLD)
-
-func draw_save_marker(pos: Vector2, marker_texture, texture_rect:TextureRect, info:String = ""):
-	# Draw bench/save icon
-	if marker_texture and pos and texture_rect:
-		texture_rect.append_marker(marker_texture, pos, info)
-
-func get_star_points(center: Vector2, radius: float, points: int, inner_radius_ratio: float) -> PackedVector2Array:
-	var result = PackedVector2Array()
-	var angle = -PI / 2  # Start from top
-	
-	for i in range(points * 2):
-		var r = radius if i % 2 == 0 else radius * inner_radius_ratio
-		var x = center.x + r * cos(angle)
-		var y = center.y + r * sin(angle)
-		result.append(Vector2(x, y))
-		angle += PI / points
-	
-	return result
-	
-# Optional: Handle viewport resizing
-func _on_drawing_area_resized():
-	queue_redraw()
+func _gui_input(event: InputEvent):
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			if event.pressed:
+				_panning = true
+				_pan_start = event.global_position
+				var parent_scroll = get_parent()
+				if parent_scroll and parent_scroll is ScrollContainer:
+					_scroll_start = Vector2(parent_scroll.scroll_horizontal, parent_scroll.scroll_vertical)
+				accept_event()
+			else:
+				_panning = false
+				accept_event()
+		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			for scene_path in _room_rects:
+				if _room_rects[scene_path].has_point(event.position):
+					room_clicked.emit(scene_path)
+					accept_event()
+					return
+	elif event is InputEventMouseMotion and _panning:
+		var parent_scroll = get_parent()
+		if parent_scroll and parent_scroll is ScrollContainer:
+			var delta = event.global_position - _pan_start
+			parent_scroll.scroll_horizontal = int(_scroll_start.x - delta.x)
+			parent_scroll.scroll_vertical = int(_scroll_start.y - delta.y)
+		accept_event()

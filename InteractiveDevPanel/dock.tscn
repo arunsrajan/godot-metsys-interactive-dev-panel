@@ -1,97 +1,95 @@
-[gd_scene load_steps=3 format=3 uid="uid://dgxbkr5la47fe"]
+[gd_scene format=3 uid="uid://dgxbkr5la47fe"]
 
 [ext_resource type="Script" uid="uid://bhgixy7sdlbmp" path="res://addons/InteractiveDevPanel/dock.gd" id="1_4bxfa"]
-[ext_resource type="Script" uid="uid://cjjkvhf3mv8bs" path="res://addons/InteractiveDevPanel/status_bar.gd" id="2_gho3s"]
 
-[node name="Dock" type="Control"]
+[node name="Dock" type="Control" unique_id=418111714]
 layout_mode = 3
 anchors_preset = 0
 mouse_filter = 1
 script = ExtResource("1_4bxfa")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1450800438]
 layout_mode = 0
 offset_right = 646.0
 offset_bottom = 89.0
 
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="Label" type="Label" parent="VBoxContainer" unique_id=2042189149]
 layout_mode = 2
 text = "MetSys Developer Tool"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=421121255]
 layout_mode = 2
 
-[node name="StatusBarContainer" type="PanelContainer" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-script = ExtResource("2_gho3s")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/StatusBarContainer"]
+[node name="StatusBarContainer" type="PanelContainer" parent="VBoxContainer/HBoxContainer" unique_id=1147095044]
 layout_mode = 2
 
-[node name="StatusIcon" type="TextureRect" parent="VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/StatusBarContainer" unique_id=1040787753]
 layout_mode = 2
 
-[node name="StatusLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer"]
-layout_mode = 2
-text = "Connected to MetSys editor"
-
-[node name="ScanProgress" type="ProgressBar" parent="VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer"]
+[node name="StatusIcon" type="TextureRect" parent="VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer" unique_id=1764463554]
 layout_mode = 2
 
-[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+[node name="StatusLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer" unique_id=1036972299]
+layout_mode = 2
+text = "Map data loaded: 32 cells found"
+
+[node name="ScanProgress" type="ProgressBar" parent="VBoxContainer/HBoxContainer/StatusBarContainer/HBoxContainer" unique_id=1213172003]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer" unique_id=585651362]
 layout_mode = 2
 current_tab = 0
 
-[node name="QuickActions" type="Panel" parent="VBoxContainer/TabContainer"]
+[node name="QuickActions" type="Panel" parent="VBoxContainer/TabContainer" unique_id=1621022460]
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/QuickActions"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/QuickActions" unique_id=761569959]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer" unique_id=1468086972]
 layout_mode = 2
 
-[node name="ExportMapData" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
+[node name="ExportMapData" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer" unique_id=1933072647]
 layout_mode = 2
 text = "Export Map Data"
 
-[node name="FileDialog" type="FileDialog" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
+[node name="FileDialog" type="FileDialog" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer" unique_id=1483434134]
 title = "Open a Directory"
 file_mode = 2
 
-[node name="ScenesFolder" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer"]
+[node name="ScenesFolder" type="Button" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer" unique_id=1129739124]
 layout_mode = 2
 text = "Open Project Folder"
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer" unique_id=1612917248]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/QuickActions/VBoxContainer" unique_id=1529267718]
 layout_mode = 2
 
-[node name="SceneBrowser" type="Control" parent="VBoxContainer/TabContainer"]
+[node name="SceneBrowser" type="Control" parent="VBoxContainer/TabContainer" unique_id=433910176]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser" unique_id=156828848]
 layout_mode = 0
 offset_right = 676.0
 offset_bottom = 67.0
 
-[node name="FilterList" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+[node name="FilterList" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer" unique_id=1033618643]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer" unique_id=1472460336]
 layout_mode = 2
 
-[node name="VSeparator" type="VSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer" unique_id=1934140728]
 layout_mode = 2
 
-[node name="ZoomSlider" type="HSlider" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="ZoomSlider" type="HSlider" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer" unique_id=721389957]
 clip_contents = true
 custom_minimum_size = Vector2(400, 20)
 layout_mode = 2
@@ -101,33 +99,33 @@ tick_count = 1
 ticks_on_borders = true
 ticks_position = 1
 
-[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer"]
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/HBoxContainer" unique_id=917982386]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer" unique_id=1558126014]
 layout_mode = 2
 
-[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer" unique_id=1479627248]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer" unique_id=1437042150]
 layout_mode = 2
 
-[node name="SearchBox" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="SearchBox" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1594838213]
 visible = false
 layout_mode = 2
 
-[node name="RoomWidth" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="RoomWidth" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1696549353]
 layout_mode = 2
 text = "864.0"
 placeholder_text = "Room Width"
 
-[node name="RoomHeight" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="RoomHeight" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1822575099]
 layout_mode = 2
 text = "480.0"
 placeholder_text = "Room Height"
 
-[node name="SceneList" type="ItemList" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="SceneList" type="ItemList" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1832153356]
 visible = false
 layout_mode = 2
 max_columns = 100
@@ -135,7 +133,7 @@ same_column_width = true
 fixed_column_width = 500
 fixed_icon_size = Vector2i(32, 32)
 
-[node name="SceneDetails" type="RichTextLabel" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="SceneDetails" type="RichTextLabel" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=472164526]
 visible = false
 layout_mode = 2
 fit_content = true
@@ -143,27 +141,25 @@ scroll_following = true
 scroll_following_visible_characters = true
 autowrap_mode = 0
 
-[node name="PreviousLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="PreviousLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=871437669]
 layout_mode = 2
 text = "<"
 
-[node name="Layer" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="Layer" type="LineEdit" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1150720210]
 layout_mode = 2
 text = "0"
 
-[node name="NextLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="NextLayer" type="Button" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=855083295]
 layout_mode = 2
 text = ">"
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer" unique_id=659695699]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer" unique_id=1486254796]
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/SceneBrowser/VBoxContainer/VBoxContainer/VBoxContainer" unique_id=1747846735]
 custom_minimum_size = Vector2(864, 480)
 layout_mode = 2
 size_flags_vertical = 3
-
-[connection signal="dir_selected" from="VBoxContainer/TabContainer/QuickActions/VBoxContainer/HBoxContainer/FileDialog" to="." method="_on_file_dialog_dir_selected"]
